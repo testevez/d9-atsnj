@@ -7,6 +7,7 @@ workflows:
           checkout: false
           pre-steps:
             - checkout
+            - run: composer self-update
             - run: composer -n install --optimize-autoloader --ignore-platform-reqs --no-dev
             - run: composer prepare-for-pantheon
           post-steps:
@@ -14,7 +15,7 @@ workflows:
             # https://github.com/pantheon-systems/quicksilver-examples/
             - run: terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- updatedb -y
             - run: terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" cr
-            - run: 
+            - run:
                 command: |
                   # If exported configuration is available, then import it.
                   if [ -f "config/system.site.yml" ] ; then
