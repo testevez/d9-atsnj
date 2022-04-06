@@ -69,7 +69,7 @@
         "drupal/video_embed_field": "^2.4",
         "drupal/view_unpublished": "^1.0",
         "drupal/views_bulk_edit": "^2.6",
-        "drupal/views_bulk_operations": "^4.1",
+        "drupal/views_bulk_operations": "4.0.1",
         "drupal/we_megamenu": "^1.13",
         "drupal/webform": "^6.1",
         "drupal/wkhtmltopdf": "^1.3",
