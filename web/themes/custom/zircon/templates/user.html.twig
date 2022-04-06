@@ -1,0 +1,62 @@
+{#
+/**
+ * @file
+ * Theme override to present all user data.
+ *
+ * This template is used when viewing a registered user's page,
+ * e.g., example.com/user/123. 123 being the user's ID.
+ *
+ * Available variables:
+ * - content: A list of content items. Use 'content' to print all content, or
+ *   print a subset such as 'content.field_example'. Fields attached to a user
+ *   such as 'user_picture' are available as 'content.user_picture'.
+ * - attributes: HTML attributes for the container element.
+ * - user: A Drupal User entity.
+ *
+ * @see template_preprocess_user()
+ */
+#}
+<article{{ attributes.addClass('profile').addClass(view_mode) }}>
+
+    {% if view_mode == 'compact' %}
+
+        {{- content.user_picture -}}
+        <div class="user-full-name">{{ full_name }}</div>
+        {% if title %}
+            <div class="title">{{ title }}</div>
+        {% endif %}
+        {% if employer %}
+            <div class="employer">{{ employer }}</div>
+        {% endif %}
+
+    {% elseif view_mode == 'text_only' %}
+
+        <div class="user-full-name">{{ full_name }}</div>
+        {% if title %}
+            <div class="title">{{ title }}</div>
+        {% endif %}
+        {% if employer %}
+            <div class="employer">{{ employer }}</div>
+        {% endif %}
+
+    {% elseif view_mode == 'grid' %}
+
+        {{- content.user_picture -}}
+        <div class="user-full-name">{{ full_name }}</div>
+        {% if title %}
+            <div class="title">{{ title }}</div>
+        {% endif %}
+        {% if employer %}
+            <div class="employer">{{ employer }}</div>
+        {% endif %}
+
+    {%  else %}
+
+        {% if content %}
+            {{- content -}}
+        {% endif %}
+
+    {%  endif %}
+
+
+</article>

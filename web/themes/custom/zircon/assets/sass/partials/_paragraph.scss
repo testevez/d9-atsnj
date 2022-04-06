@@ -1,0 +1,142 @@
+article {
+
+  .paragraph {
+
+    margin-bottom: 1em;
+
+    h2.taxonomy-term-title  {
+      display: none;
+    }
+  }
+
+  .paragraph--type--image-left-with-wrap-text {
+
+    .image-caption-credit {
+
+      float: left;
+      margin-right: .75em;
+      margin-bottom: .25em;
+
+      .caption {
+
+        font-size: .85em;
+        color: $light_grey;
+        margin: 0;
+        padding: 0;
+
+        p {
+          margin: 0;
+          padding: 0;
+        }
+
+      }
+
+      .credit {
+        font-size: .75em;
+        color: $light_grey_2;
+        margin: 0;
+        padding: 0;
+
+        p {
+          margin: 0;
+          padding: 0;
+        }
+
+      }
+
+      img {
+        float: left;
+        margin-right: 0;
+        margin-bottom: 0;
+      }
+    }
+
+  }
+
+  .paragraph--type--image-right-with-wrap-text {
+
+    @include clearfix;
+
+    img {
+      float: right;
+      margin-left: .75em;
+      margin-right: 0;
+    }
+
+  }
+
+  .paragraph--type--image {
+
+    @include clearfix;
+
+    text-align: center;
+
+    img {
+      margin-bottom: .5em;
+      float: none;
+      display: block;
+    }
+
+  }
+  .paragraph.paragraph--type--image-grid-v2 {
+    .field_media_images {
+      > div {
+        width: 48%;
+        float: left;
+        margin-bottom: 1em;
+      }
+      > div.odd {
+        margin-right: 1em;
+      }
+    }
+  }
+  @media (max-width: $tablet) {
+    .paragraph.paragraph--type--image-grid-v2 {
+      .field_media_images {
+        > div {
+          width: 48%;
+          float: left;
+          margin-bottom: .5em;
+        }
+        > div.odd {
+          margin-right: .5em;
+        }
+      }
+    }
+  }
+
+
+  /* Deprecated */
+  .paragraph--type--image-grid {
+
+    @include clearfix;
+
+    img {
+      float: left;
+      width: 48%;
+      margin: .25em;
+    }
+
+    clear: both;
+
+  }
+
+}
+
+@media (max-width: $mobile-md) {
+
+  article {
+
+    .paragraph--type--image-grid {
+
+      img {
+        float: none;
+        width: 100%;
+        margin: .25em;
+      }
+
+    }
+
+  }
+
+}

@@ -1,0 +1,453 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Entity;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+
+$active_theme = \Drupal::theme()->getActiveTheme()->getName();
+include_once(drupal_get_path('theme', $active_theme) . '/assets/includes/skins-menu/skins_menu.inc');
+
+function zircon_preprocess_html(&$variables) {
+  $is_front_page =  \Drupal::service('path.matcher')->isFrontPage();
+  if ($is_front_page) {
+    $variables['attributes']['class'][] = 'front';
+  } else {
+    $variables['attributes']['class'][] = 'not-front';
+  }
+
+  $status = \Drupal::requestStack()->getCurrentRequest()->attributes->get('exception');
+  if ($status) {
+    $status_code = $status->getStatusCode();
+    if ('403' == $status_code) {
+
+      $account = \Drupal::currentUser();
+      if ($account->id() < 1) {
+        $variables['attributes']['class'][] = 'access-denied';
+        // Add login forms
+
+        $variables['page']['content']['openid_connect'] = [
+          '#weight' => -99,
+          'form' => \Drupal::formBuilder()->getForm('Drupal\openid_connect\Form\LoginForm'),
+        ];
+        $variables['page']['content']['user_login_form'] = [
+          '#weight' => -98,
+          'form' => \Drupal::formBuilder()->getForm('Drupal\user\Form\UserLoginForm'),
+        ];
+      }
+
+    }
+  }
+  skmn_preprocess_html($variables);
+}
+
+/**
+ * Implements template_preprocess_paragraph().
+ *
+ * Format the image as a link if there is value in the
+ *
+ */
+function zircon_preprocess_paragraph(&$variables) {
+
+  $paragraph = $variables['paragraph']; //  Drupal\paragraphs\Entity\Paragraph
+  $bundle = $paragraph->bundle();
+
+  switch ($bundle) {
+    case 'full_width_image':
+      $image_markup = render($variables['content']['field_image_paragraph_type']);
+
+      // Handle link
+      $field_image_link = $paragraph->get('field_image_link');
+      $link_string = $field_image_link->getString();
+      if ($link_string) {
+        $link = Url::fromUri($field_image_link->uri)->toString();
+        $variables['link_string'] =  $link;
+        unset($variables['content']['field_image_link']);
+      }
+      // Handle caption
+      $caption_string = $paragraph->get('field_image_caption')->getString();
+      if ($caption_string) {
+        $caption_markup = render($variables['content']['field_image_caption']);
+        unset($variables['content']['field_image_caption']);
+      }
+      // Handle credit
+      $credit_string = $paragraph->get('field_image_credit')->getString();
+      if ($credit_string) {
+        $credit_markup = render($variables['content']['field_image_credit']);
+        unset($variables['content']['field_image_credit']);
+        $variables['credit_markup'] = $credit_markup;
+      }
+      // Handle anchor
+      $anchor_string = strip_tags($paragraph->get('field_anchor')->getString());
+      if (strlen($anchor_string)) {
+        $anchor_markup = '<a name="'. $anchor_string .'" id="'. $anchor_string.'"></a>';
+        unset($variables['content']['field_anchor']);
+        $variables['anchor_markup']['#markup'] =  $anchor_markup;
+      }
+      $variables['image_markup'] =  $image_markup;
+      if (isset($caption_markup)) {
+        $variables['caption_markup'] = $caption_markup;
+      }
+      break;
+    case 'image_left_with_wrap_text':
+    case 'image_with_link_and_captions':
+      // is there an image?
+      $image_string = $paragraph->get('field_image')->getString();
+      if (isset($image_string)) {
+
+        $caption_markup = '';
+        $credit_markup = '';
+        $anchor_markup = '';
+
+        // Get the width
+        $image_markup = render($variables['content']['field_image']);
+        if (isset($variables['content']['field_image'][0]['#item'])) {
+          $item = $variables['content']['field_image'][0]['#item'];
+          $max_width = $item->get('width')->getString();
+        }
+        else {
+          return;
+        }
+
+        // Handle link
+        $link_string = $paragraph->get('field_image_link')->getString();
+        if ($link_string) {
+          $variables['link_string'] =  $link_string;
+          unset($variables['content']['field_image_link']);
+        }
+        // Handle caption
+        $caption_string = $paragraph->get('field_image_caption')->getString();
+        if ($caption_string) {
+          $caption_markup = render($variables['content']['field_image_caption']);
+          unset($variables['content']['field_image_caption']);
+        }
+        // Handle credit
+        $credit_string = $paragraph->get('field_image_credit')->getString();
+        if ($credit_string) {
+          $credit_markup = render($variables['content']['field_image_credit']);
+          unset($variables['content']['field_image_credit']);
+        }
+        // Handle anchor
+        $anchor_string = strip_tags($paragraph->get('field_anchor')->getString());
+        if ($anchor_string) {
+          $anchor_markup = '<a name="'. $anchor_string .'" id="'. $anchor_string.'"></a>';
+          unset($variables['content']['field_anchor']);
+        }
+
+        $variables['anchor_markup']['#markup'] =  $anchor_markup;
+        $variables['image_markup'] =  $image_markup;
+        $variables['caption_markup'] = $caption_markup;
+        $variables['credit_markup'] = $credit_markup;
+        $variables['max_width'] = $max_width .'px';
+
+      }
+      else {
+        unset($variables['content']['field_image_link']);
+        unset($variables['content']['field_image_caption']);
+        unset($variables['content']['field_image_credit']);
+
+      }
+
+      break;
+
+  }
+
+}
+
+/**
+ * Implements hook_preprocess_group().
+ *
+ * Add badge
+ *
+ */
+function zircon_preprocess_group(&$variables) {
+
+  //$group = $variables['elements']['#group']; // use this for 8.4
+  // $group = $variables['group']; // Use this instead for 8.6
+
+  //ksm($group);
+  //$label = $group->get('label')->getString();
+  //ksm($variables['content']);
+
+  // Adjust logic if we ever add a new type of group or alter the permissions for committees
+  // We assume all groups are committees for now
+  //$variables['badge'] = $label .' members only';
+  //$variables['content']['badge']['#markup'] = $label .' Members Only';
+}
+
+/**
+ * Implements hook_preprocess_node().
+ *
+ * Make the Sponsor URL available in the node TPL.
+ * Distinguish Members Only content
+ *
+ */
+function zircon_preprocess_node(&$variables) {
+
+  $node = $variables['elements']['#node']; // use this for 8.4
+  // $node = $variables['node']; // Use this instead for 8.6
+
+  // Make the Sponsor URL available in the node TPL.
+  if (isset($variables['content']['field_sponsor_url'])) {
+    // $field_value = $node->get('field_sponsor_url')->getValue(); for the array
+    $field_value = $node->get('field_sponsor_url')->getString();
+    $variables['field_sponsor_url'] = $field_value;
+  }
+
+  // Distinguish Members Only content
+  if (isset($variables['content']['field_tags'])) {
+    $field_value = $node->get('field_tags')->getString();
+    if ($field_value == ATSNJ_PORTAL_MEMBERS_ONLY_TID) {
+      $variables['members_only'] = TRUE;
+    }
+  }
+
+  // Check for title override
+  if (isset($variables['content']['field_title_override'])) {
+    $field_value = $node->get('field_title_override')->getString();
+    if ($field_value) {
+      $variables['title_override'] = $field_value;
+    }
+  }
+
+  // Make bundle available
+  $variables['bundle'] = $node->bundle();
+}
+
+/**
+ * Implements template_preprocess_user().
+ *
+ * Make the view mode available in the template
+ * Make a full name variable
+ *
+ */
+function zircon_preprocess_user(&$variables) {
+  $user = $variables['user'];
+  $view_mode = $variables['elements']['#view_mode'];
+
+  $variables['view_mode'] = $view_mode;
+
+  $field_first_name = $user->get('field_first_name')->getString();
+  $field_last_name = $user->get('field_last_name')->getString();
+
+  if ($field_first_name | $field_last_name) {
+    $variables['full_name'] = new Link($field_first_name .' '. $field_last_name, $user->toUrl());
+  }
+  else {
+    $variables['full_name'] = new Link($user->label(), $user->toUrl());
+  }
+
+  $title = current($user->get('field_title')->getValue());
+  $employer = current($user->get('field_employer')->getValue());
+
+  if (isset($title['value']) && isset($title['format'])) {
+    $variables['title'] = check_markup($title['value'],$title['format']);
+  }
+  if (isset($employer['value']) && isset($employer['format'])) {
+    $variables['employer'] = check_markup($employer['value'],$employer['format']);
+  }
+
+
+}
+
+/**
+ * Implements hook_preprocess_field().
+ *
+ * Add Classes to sponsored ad images.
+ */
+function zircon_preprocess_field(&$variables) {
+
+  if ($variables['entity_type'] == 'node') {
+
+    // Get our node object
+    if (isset($variables['object'])) {
+      $node = $variables['object']; // Use this instead for 8.6
+    } else if (isset($variables['element']['#object'])) {
+      $node = $variables['element']['#object']; // use this for 8.4
+    }
+
+    // Add Classes to a sponsored as image
+    if (in_array($variables['field_name'], array('field_square_ad_image', 'field_sponsorship_level'))) {
+
+      $nid = $node->get('nid')->getString();
+      $variables['nid'] = $nid;
+      switch ($variables['field_name']) {
+        case 'field_square_ad_image':
+          foreach ($variables['items'] as $key => $item) {
+            $variables['items'][$key]['content']['#item_attributes']['class'][] = 'sponsored-ad';
+            $variables['items'][$key]['content']['#item_attributes']['class'][] = 'sponsored-ad-' . $nid;
+          }
+          break;
+        case 'field_sponsorship_level':
+          // Leave this here in case badges become click-able
+          break;
+      }
+    }
+
+    // Distinguish Members Only content
+    if (isset($node->field_tags)) {
+      $field_value = $node->get('field_tags')->getString();
+      if ($field_value == ATSNJ_PORTAL_MEMBERS_ONLY_TID) {
+        $variables['members_only'] = TRUE;
+      }
+    }
+
+    // Check for title override
+    if (isset($node->field_title_override)) {
+      $field_value = $node->get('field_title_override')->getString();
+      if ($field_value) {
+        $build = $node->get('field_title_override')->view();
+        $variables['new_title'] = $build;
+      }
+    }
+  }
+  else if ($variables['entity_type'] == 'message') {
+    if (isset($variables['object'])) {
+      $message = $variables['object'];
+    }
+    // Add Classes to a sponsored as image
+    foreach ($variables['items'] as $key => $item) {
+      $variables['items'][$key]['content']['#options']['attributes']['class'] = ['button-style'];
+    }
+
+  }
+  else if ($variables['entity_type'] == 'group') {
+    // Get our group object
+    if (isset($variables['object'])) {
+      $group = $variables['object']; // Use this instead for 8.6
+    } else if (isset($variables['element']['#object'])) {
+      $group = $variables['element']['#object']; // use this for 8.4
+    }
+    $label = $group->get('label')->getString();
+
+    // Adjust logic if we ever add a new type of group or alter the permissions for committees
+    // We assume all groups are committees for now
+    //$variables['badge'] = $label .' Members Only';
+    $variables['badge'] = 'Members Only';
+  }
+
+}
+
+function zircon_preprocess_page(&$variables) {
+  if (!empty($variables['page']['sidebar_first']) && !empty($variables['page']['sidebar_second'])) {
+    $variables['attributes']['class'][] = 'layout-two-sidebars';
+    $variables['page']['main_content_width'] = 6;
+  }
+  elseif (!empty($variables['page']['sidebar_first'])) {
+    $variables['attributes']['class'][] = 'layout-one-sidebar';
+    $variables['attributes']['class'][] = 'layout-sidebar-first';
+    $variables['page']['main_content_width'] = 9;
+  }
+  elseif (!empty($variables['page']['sidebar_second'])) {
+    $variables['attributes']['class'][] = 'layout-one-sidebar';
+    $variables['attributes']['class'][] = 'layout-sidebar-second';
+    $variables['page']['main_content_width'] = 9;
+  }
+  else {
+    $variables['attributes']['class'][] = 'layout-no-sidebars';
+    $variables['page']['main_content_width'] = 12;
+  }
+  $variables['path_to_theme'] = drupal_get_path('theme', 'zircon');
+  skmn_preprocess_page($variables);
+  //$variables['logo'] = str_replace('.svg', '.png', $variables['logo']);
+}
+
+function zircon_form_system_theme_settings_alter(&$form, $form_state) {
+
+  skmn_form_system_theme_settings_alter($form, $form_state);
+}
+
+
+function zircon_form_system_theme_settings_submit($form, &$form_state) {
+
+  skmn_form_system_theme_settings_submit($form, $form_state);
+
+}
+
+/**
+ * Implements hook_preprocess_form_element().
+ */
+function zircon_preprocess_views_view_field(&$variables) {
+
+}
+
+/**
+ * Implements hook_preprocess_view_view
+ */
+function zircon_preprocess_views_view(&$variables) {
+
+  $view =  $variables['view'];
+
+  if ('group_members_public' == $view->id() && 'block_2' == $view->current_display) {
+
+    // Load the results from the view and organize them
+    $values = [];
+    foreach ($view->result as $i => $result) {
+      $group_content = $result->_entity;
+      $values[$i]['group_membership_id'] = $group_content->id->getString();
+      $values[$i]['uid'] = $group_content->get('entity_id')->getString();
+      $group_roles = $group_content->get('group_roles');
+      $values[$i]['group_roles']['string'] = $group_roles->getString();
+      $values[$i]['group_roles']['name'] = $group_roles->getName();
+      $values[$i]['group_roles']['value'] = $group_roles->getValue();
+    }
+
+    // Load all the Committee Roles in the correct order
+    $group_roles = \Drupal::entityTypeManager()->getStorage('group_role')->loadMultiple();
+    // Specify the group type you are interested in.
+    $group_type = 'committee';
+
+    // Run through all the roles to make a list
+    // Remove internal ones we do not want to list
+
+    /** @var  \Drupal\group\Entity\GroupRole $group_role */
+    foreach ($group_roles as $role_id => $group_role) {
+      if ($group_role->getGroupTypeId() == $group_type) {
+        if (!$group_role->isInternal()) {
+          $rids[] = $group_role->id();
+        }
+      }
+    }
+
+    // Use a theme function for the output to leverage TWIG
+    $excluded_committee_roles = ['committee-admin', 'committee-editor'];
+
+    $results = [];
+    // Check each role
+    foreach ($rids as $rid) {
+      if (!in_array($rid, $excluded_committee_roles)) {
+        // Check each user's rolesw
+        foreach ($values as $user) {
+          // Load the user view mode
+          $user_storage = \Drupal::entityTypeManager()->getStorage('user');
+          $account = $user_storage->load($user['uid']);
+          $view_builder = \Drupal::entityTypeManager()->getViewBuilder('user');
+          $build = $view_builder->view($account, 'compact'); //  TODO: Make configurable
+          // Does the user have any role?
+          if (count($user['group_roles']['value'])) {
+            // Does the user have this role?
+            foreach ($user['group_roles']['value'] as $value) {
+              if ($rid == $value['target_id']) {
+                // Load the label
+                $role = \Drupal\group\Entity\GroupRole::load($rid);
+                $label = $role->label();
+                $results[$rid]['label'] = $label;
+                $results[$rid]['users'][] = $build;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Set the output
+    $title = 'Committee Members';
+    $build = [
+      '#theme' => 'atsnj_committee_members',
+      '#results' => $results,
+      '#title' => $title,
+    ];
+    $variables['override'] = $build;
+  }
+}

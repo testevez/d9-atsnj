@@ -1,0 +1,263 @@
+// ==========================================================================
+// Typography
+// ==========================================================================
+body {
+    -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    font-size: $fs-body;
+    color: $dark_grey;
+    background: #00467f url(../images/custom/body_background.png) repeat-x;
+}
+
+html {
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    font-size: 100%;
+    text-rendering: auto;
+}
+
+header, nav, section, article, figure, aside, footer {
+    display: block;
+}
+
+a {
+    color: $dark_grey;
+}
+
+a:hover, a:focus {
+    outline: none;
+    text-decoration: none;
+    color: $red;
+}
+
+
+.main .content .tabs a,
+.main .content .tabs a:visited {
+    color: #555;
+    text-decoration: none;
+}
+.main .content .tabs a:hover {
+    color: #777;
+    text-decoration: none;
+}
+
+.main .content a,
+.main .content p a,
+.sidebar-second a {
+    color: $atsnj_orange;
+    text-decoration: underline;
+}
+.main .content  a:hover
+.main .content p a:hover,
+.sidebar-second a:hover,
+.main .content p a:focus,
+.sidebar-second a:focus{
+    color: $dark_grey;
+    text-decoration: underline;
+}
+.main .content p a:visited,
+.sidebar-second a:visited {
+    color: $atsnj_dark_orange;
+    text-decoration: underline;
+}
+.main .content p a.button-style,
+.main .content  a.button-style,
+.sidebar-second a.button-style {
+    color: $white;
+    text-decoration: none;
+}
+.main .content p a.button-style:visited,
+.sidebar-second a.button-style:visited {
+    color: $white;
+    text-decoration: none;
+}
+
+h1, .h1 {
+    font-size: 1.84em;
+}
+
+h1, .h1, h2, .h2, h3, .h3 {
+    margin: 0 0 15px;
+    line-height: 1.3;
+    font-family: $font-body;
+}
+
+h2 {
+    font-size: 1.57em;
+    font-family: $font-body;
+}
+
+h3, .h3 {
+    font-size: 1.428em;
+}
+
+h4, h5, h6 {
+    margin-bottom: 15px;
+    font-size: 1em;
+}
+
+address {
+    margin-bottom: 15px;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+input, button, select, textarea {
+    padding: 5px 6px 7px 6px;
+    border: 1px solid #ddd;
+    outline: none;
+}
+
+label {
+    font-weight: bold;
+}
+
+p {
+    margin-bottom: 15px;
+}
+
+/* BUTTON */
+
+.form-actions .form-submit {
+    margin: 0 10px 10px 0;
+    border: none;
+    padding: 8px 20px;
+    color: #fff;
+    background: $red;
+    border-radius: 3px;
+    -webkit-border-radius: 3px;
+    cursor: pointer;
+    &:hover, &:focus {
+        background-color: $dark_grey;
+    }
+}
+
+.light {
+    color: $light_grey;
+}
+
+/* BADGE */
+.badge {
+    background-color: #00467f;
+}
+
+.field_title_override label {
+    display: none;
+
+}
+
+/* <a> as buttons */
+html body .button-style,
+html body .more-link a {
+    border: none;
+    padding: 8px 20px;
+    color: #fff;
+    background: #dc9a36;
+    border-radius: 3px;
+    -webkit-border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+}
+html body .sidebar .button-style {
+    padding: 4px 10px;
+}
+html body .more-link a:visited {
+    color: $white;
+    text-decoration: none;
+}
+
+html body a.button-style {
+    color: white;
+    text-decoration: none;
+}
+
+
+html body a.button-style:hover,
+html body a.button-style:focus {
+    background-color: #555 !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+html body a.button-style:visited,
+html body p a.button-style:visited,
+html body .main .content p a.button-style:visited ,
+html body .sidebar-second a.button-style:visited {
+    background: #dc9a36 !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+table.views-table td,
+table.views-table th {
+    padding: .25em;
+}
+.main .content table.views-table th a {
+  color: white;
+}
+table.views-table thead {
+    background: #dc9a36;
+}
+
+.paragraph--type--cta-email-s- {
+    border: solid 1px #dc9a36;
+    padding: 1em;
+    margin-bottom: .5em;
+}
+
+html body article .paragraph--type--image-left-pop-up div {
+
+    > a {
+        float: left;
+        margin-right: .75em;
+        margin-bottom: .25em;
+
+        > img {
+            margin-right: 0;
+            margin-bottom: 0;
+            float: none;
+        }
+
+    }
+
+
+}
+
+
+.ui-dialog  {
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border: 1px solid #dadada;
+    text-align: center;
+}
+html body .ui-dialog .ui-dialog-titlebar {
+    background-color: #555;
+    background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#373a3d), to(#282a2c));
+    background: -webkit-linear-gradient(top, #373a3d, #282a2c);
+    background: -moz-linear-gradient(top, #373a3d, #282a2c);
+    background: -ms-linear-gradient(top, #373a3d, #282a2c);
+    background: -o-linear-gradient(top, #373a3d, #282a2c);
+    color: #fff;
+    margin: 0;
+    padding: 0;
+    text-transform: uppercase;
+    -webkit-border-top-left-radius: 5px;
+    -webkit-border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    font-size: 1.23em;
+}
+html body .ui-dialog-titlebar .ui-dialog-titlebar-close {
+    background: url(../../images/icons/button.png);
+}
+
+.button-holder,
+.flag-read {
+    float: left;
+    display: inline;
+    margin-right: 1em;
+}

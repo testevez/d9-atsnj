@@ -1,0 +1,43 @@
+/** Custom styles **/
+.view-filters {
+    border: 1px solid #cdcdcd;
+    padding: 1em;
+    margin-bottom: 1em;
+}
+.field--name-field-categories,
+.field--name-field-audience {
+    display: block;
+}
+.field--name-field-categories .field__items .field__item,
+.field--name-field-audience .field__items .field__item {
+    display: inline;
+}
+.field--name-field-categories .field__items .field__item,
+.field--name-field-audience .field__items .field__item {
+    display: inline;
+}
+.field--name-field-categories .field__items .field__item:not(:last-child):after,
+.field--name-field-audience .field__items .field__item:not(:last-child):after  {
+    content: ", ";
+}
+/** block-views-blockfeatured-block-1 */
+.block-views-blockfeatured-block-1 .views-field-field-short-title{
+    font-size: 1.5em;
+    color: #555;
+    font-weight: bold;
+}
+
+/** All nodes **/
+article a img {
+    float: left;
+    margin-right: .75em;
+    margin-bottom: .25em;
+}
+article .tax-label {
+    font-weight: bold;
+    margin-top: .25em;
+    margin-bottom: 0;
+}
+.light {
+    color: lightgrey;
+}

@@ -1,0 +1,204 @@
+article {
+    @include clearfix;
+
+    &.full.event_v2 {
+
+        fieldset {
+
+            legend {
+                font-size: 1.428em;
+                margin: 0 0 15px;
+                line-height: 1.3;
+                font-family: "oswaldregular";
+                border: 0;
+                color: inherit;
+                margin: 0 0 15px;
+            }
+
+            label {
+                color: $atsnj_dark_orange;
+            }
+        }
+    }
+
+    &.teaser.event_v2,
+    &.teaser.article_v2,
+    &.teaser.site_page {
+
+        .media--view-mode-thumbnail {
+            float: left;
+
+            .quickedit-field {
+
+
+                .img {
+                    float: none;
+                }
+            }
+        }
+
+    }
+
+
+    .field--name-field-image {
+        float: left;
+        margin-bottom: 10px;
+        margin-right: 15px;
+        padding: 4px;
+        border: 1px solid #dadada;
+
+        @include border-radius(5px);
+    }
+
+    .field--name-body {
+        position: relative;
+        top: -4px;
+    }
+
+
+    img {
+         float: left;
+         margin-right: .75em;
+         margin-bottom: .25em;
+     }
+
+    img.sponsored-ad  {
+        float: none;
+        margin-right: 0;
+        margin-bottom: 0;
+    }
+
+    .sponsor-badge {
+        text-align: center;
+
+        img.image-style-sponsor-level-badge {
+            float: none;
+        }
+
+    }
+
+    &.full.ads {
+        text-align: center;
+
+        img {
+            float: none;
+        }
+    }
+
+
+    .tax-label {
+        font-weight: bold;
+        margin-top: .25em;
+        margin-bottom: 0;
+    }
+
+    > footer {
+        color: #737373;
+        font-size: $fs-14;
+        line-height: 1;
+        padding: 0 0 1.5em;
+    }
+
+    .field--type-comment, .node__links {
+        clear: both;
+    }
+
+}
+
+article {
+
+    &.video {
+        img {
+
+            float: none;
+
+        }
+    }
+
+}
+
+article.teaser {
+    .datetime {
+        font-size: .9em;
+    }
+}
+
+.field--name-field-categories,
+.field--name-field-audience {
+    display: block;
+}
+.field--name-field-categories .field__items .field__item,
+.field--name-field-audience .field__items .field__item {
+    display: inline;
+}
+.field--name-field-categories .field__items .field__item,
+.field--name-field-audience .field__items .field__item {
+    display: inline;
+}
+.field--name-field-categories .field__items .field__item:not(:last-child):after,
+.field--name-field-audience .field__items .field__item:not(:last-child):after  {
+    content: ", ";
+}
+
+/** block-views-blockfeatured-block-1 */
+.block-views-blockfeatured-block-1 .views-field-field-short-title{
+    font-size: 1.5em;
+    color: #555;
+    font-weight: bold;
+}
+
+.block-views-blockcarousel-block-1 .slick-slide {
+    padding: 0 .5em;
+}
+
+/** User view mode preview **/
+.view-filters #views-exposed-form-user-administration-page-2.views-exposed-form .form--inline .form-item {
+    float: none;
+}
+
+/** committee-minutes-media- **/
+#main .container .content .committee-minutes-media- .views-row {
+  width: 100%;
+}
+#main .container .content .view-header {
+  margin-bottom: 2em;
+}
+
+
+  #main .container .content .committee-minutes-media- .views-row {
+    width: 50%;
+    float: left;
+  }
+  #main .container .content .views-row:nth-child(2) {
+    border-top: none;
+    padding-top: 0;
+  }
+@media all and (max-width: 560px) {
+  body #main .container .content .committee-minutes-media- .views-row {
+    width: 100%;
+    float: none;
+  }
+  body #main .container .content .views-row:nth-child(2) {
+    border-top: 1px solid #dadada;
+    border-top-style: dotted;
+    padding-top: 20px;
+  }
+}
+
+.committee-minutes-media- .more-link {
+  padding-top: 1em;
+  text-align: center;
+}
+
+/** Committee members block **/
+#main .container .content .block-views-blockgroup-members-public-block-2 li{
+  width: 50%;
+  float: left;
+
+}
+@media all and (max-width: 560px) {
+  #main .container .content .block-views-blockgroup-members-public-block-2 li{
+    width: 100%;
+    float: none;
+  }
+}
