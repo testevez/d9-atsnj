@@ -15,13 +15,14 @@
     ],
     "require": {
         "php": ">=7.3",
-        "composer-plugin-api": "2.1.0",
+        "composer-plugin-api": "^1",
         "composer/installers": "^1.8",
+        "cweagans/composer-patches": "^1.6",
+        "drupal/admin_toolbar": "^3.1",
         "drupal/core-composer-scaffold": "^9",
         "drupal/core-recommended": "^9",
-        "pantheon-systems/drupal-integrations": "^8",
         "drush/drush": "^10",
-        "cweagans/composer-patches": "^1.6",
+        "pantheon-systems/drupal-integrations": "^8",
         "zaporylie/composer-drupal-optimizations": "^1.1"
     },
     "conflict": {
