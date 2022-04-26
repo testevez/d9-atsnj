@@ -1,0 +1,6 @@
+name: ATSNJ Nimble Integration
+description: Provides Nimble AMS OpenID Connect plugin and API integration for user field sync
+package: ATSNJ
+
+type: module
+core: 8.x

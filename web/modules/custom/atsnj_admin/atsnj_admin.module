@@ -1,0 +1,154 @@
+<?php
+
+use Drupal\user\Entity\User;
+use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Config;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+use Drupal\rules\Core\RulesActionBase;
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\comment\Entity\Comment;
+use Drupal\message\Entity\Message;
+use Drupal\flag\Entity\Flag;
+use Drupal\flag\Entity\Flagging;
+use Drupal\flag\FlagInterface;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\webform\WebformSubmissionInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\views\Views;
+
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function atsnj_admin_flagging_insert(Drupal\Flag\Entity\Flagging $entity) {
+
+  $flag_id =   $entity->get('flag_id')->getString();
+  switch ($flag_id) {
+    case 'audit':
+      // Determine who gets the internal messages.
+      $users_to_be_notified = _atsnj_admin_get_message_target('editor');
+      $owner = $entity->getOwner();
+
+      // Get the content that was flagged.
+      $flagged_entity = $entity->get('flagged_entity');
+      $content_id =  $flagged_entity->getString();
+
+      foreach ($users_to_be_notified as $user) {
+        // Send message(s)
+        $message = Message::create(['template' => 'content_needs_audit', 'uid' => $user->id()]);
+        $message->set('field_content', $content_id);
+        $message->set('field_owner', $owner->id());
+        $message->save();
+        $id = $message->id();
+        // Set the details link
+        $details =  [
+          'uri' => "internal:/flag/flag/read/$id",
+          'title' => "Details",
+          'options' => [
+            'query' => [
+              'destination' => '/admin/atsnj/needs-audit'
+            ]
+          ]
+        ];
+        $message->set('field_details', $details);
+        $message->save();
+      }
+      break;
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function atsnj_admin_flagging_delete(Drupal\Flag\Entity\Flagging $entity) {
+
+  $flag_id =   $entity->get('flag_id')->getString();
+  switch ($flag_id) {
+    case 'audit':
+      // Who addressed?
+      $account = \Drupal::currentUser();
+
+      // Determine who gets the internal messages.
+      $users_to_be_notified = _atsnj_admin_get_message_target('editor');
+
+      // Get the content that was flagged.
+      $flagged_entity = $entity->get('flagged_entity');
+      $content_id =  $flagged_entity->getString();
+
+      foreach ($users_to_be_notified as $user) {
+        // Send message(s).
+        $message = Message::create(['template' => 'content_audit_addressed', 'uid' => $user->id()]);
+        $message->set('field_content', $content_id);
+        $message->set('field_owner', $account->id());
+        $message->save();
+        $id = $message->id();
+        // Set the details link
+        $details =  [
+          'uri' => "internal:/flag/flag/read/$id",
+          'title' => "Details",
+          'options' => [
+            'query' => [
+              'destination' => "/node/$content_id"
+            ]
+          ]
+        ];
+        $message->set('field_details', $details);
+        $message->save();
+      }
+      break;
+  }
+}
+
+/**
+ * Helper function to mark all as read
+ */
+function _atsnj_admin_bulk_flag($uid, $flag_id) {
+
+  //$account = User::load($uid);
+  $flag_service = \Drupal::service('flag');
+
+  /** @var FlagInterface $flag */
+  $flag = $flag_service->getFlagById($flag_id);
+
+  // Load all messages for user
+  $message_ids = \Drupal::entityQuery('message')
+    ->condition('uid', $uid)
+    ->execute();
+  $messages = Message::loadMultiple($message_ids);
+
+  $count = 0;
+  // Check each message if it's read.
+  foreach ($messages as $message) {
+    $is_flagged =  $flag->isFlagged($message);
+    if (!$is_flagged) {
+      $flag_service->flag($flag, $message);
+      $count++;
+    }
+  }
+  return $count;
+
+}
+
+/**
+ * Helper function to determine who gets the message
+ */
+function _atsnj_admin_get_message_target($role = FALSE) {
+
+  if (!$role) {
+    $role = 'editor'; // TODO: replace this as the workflow gets finalizedd
+  }
+
+  $ids = \Drupal::entityQuery('user')
+    ->condition('status', 1)
+    ->condition('roles', $role)
+    ->execute();
+
+  $users = User::loadMultiple($ids);
+  return $users;
+
+}

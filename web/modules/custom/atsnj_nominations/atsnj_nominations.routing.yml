@@ -1,0 +1,23 @@
+atsnj_nominations.base:
+  path: '/admin/atsnj/nominations'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'ATSNJ Nominations'
+  requirements:
+    _permission: 'administer atsnj nominations module'
+
+atsnj_nominations.settings:
+  path: '/admin/atsnj/nominations/settings'
+  defaults:
+    _form: '\Drupal\atsnj_nominations\Form\AtsnjNominationsSettingsForm'
+    _title: 'Nomination Settings'
+  requirements:
+    _permission: 'administer atsnj nominations module'
+
+atsnj_nominations.resend_form:
+  path: '/admin/atsnj_nominations/resend'
+  defaults:
+    _title: 'Resend CTA Email'
+    _form: '\Drupal\atsnj_nominations\Form\AtsnjResendEmailForm'
+  requirements:
+    _permission: 'administer atsnj nominations module'

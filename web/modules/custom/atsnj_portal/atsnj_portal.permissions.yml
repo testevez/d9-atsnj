@@ -1,0 +1,8 @@
+administer atsnj_portal:
+  title: 'administer atsnj_portal'
+access atsnj members content:
+  title: 'access ATSNJ members content'
+access any dashboard:
+  title: 'access any dashboard'
+access my dashboard:
+  title: 'access my dashboard'

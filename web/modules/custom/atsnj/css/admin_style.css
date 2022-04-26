@@ -1,0 +1,12 @@
+.toolbar-icon-atsnj-admin-atsnj:before {
+    background-image: url(../images/icon.svg);
+}
+html body .entity-browser-iframe-container {
+    width: 100% !important;
+}
+
+
+#toolbar-link-entity-media-add_page:before {
+    background-image: url("../images/iconmonstr-note-29.svg");
+
+}

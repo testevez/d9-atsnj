@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the ATSNJ module.
+ */
+
+use Drupal\Core\Database\Database;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\user\RoleInterface;
+
+/**
+ * Update module weight.
+ */
+function atsnj_update_8001() {
+  module_set_weight('atsnj', 100);
+}
+
+/**
+ * Resolve orphaned modules.
+ */
+function atsnj_update_8002() {
+  \Drupal::keyValue("system.schema")->delete("media_entity");
+  \Drupal::keyValue("system.schema")->delete("media_entity_vimeo");
+  \Drupal::keyValue("system.schema")->delete("media_private_access");
+}
+

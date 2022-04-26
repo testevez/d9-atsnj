@@ -1,0 +1,244 @@
+<?php
+
+/**
+ * @file
+ * ATSNJ module file.
+ */
+
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\Xss;
+use Drupal\file\Entity\File;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Render\BubbleableMetadata;
+
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityPublishedTrait;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\ChangedFieldItemList;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\TypedData\TranslatableInterface;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\entity_reference_revisions\EntityNeedsSaveTrait;
+use Drupal\field\FieldConfigInterface;
+use Drupal\paragraphs\ParagraphInterface;
+use Drupal\user\EntityOwnerInterface;
+use Drupal\user\UserInterface;
+
+define('ATSNJ_DEFAULT_ACKNOWLEDGE_COPY', '<h3>March 13th, 2020</h3><p>Ladies and Gentlemen, <br /><br />
+
+The Athletic Trainers’ Society of New Jersey is closely monitoring information pertaining to the COVID-19 virus outbreak. Per the most recent <a href="https://www.nata.org/blog/todd-christman/statement-covid-19-virus">National Athletic Trainers’ Association member statement</a>, society members are highly encouraged to utilize universal precautions while practicing, observe recommendations from the Center for Disease Control and Prevention, and practice appropriate personal hygiene. As this is an extremely dynamic situation, please monitor the society’s webpage as well as social media outlets for updated information. </p>
+<p>
+Sincerely,<br />
+K.B.<br />
+Kevin Briles, LAT, ATC<br />
+President, The Athletic Trainers’ Society of New Jersey, Inc.
+</p>');
+define('ATSNJ_DEFAULT_ACKNOWLEDGE_BUTTON_COPY', 'I Acknowledge');
+define('ATSNJ_DEFAULT_DETAILS_HEADER_COPY', 'Special Announcement');
+define('ATSNJ_DEFAULT_MODAL_HEADER_COPY', 'Message re: Corona Virus');
+
+/**
+ * .
+ *
+ * Prepares variables for file link templates.
+ *
+ * Default template: file-link.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - file: A file object to which the link will be created.
+ *   - icon_directory: (optional) A path to a directory of icons to be used for
+ *     files. Defaults to the value of the "icon.directory" variable.
+ *   - description: A description to be displayed instead of the filename.
+ *   - attributes: An associative array of attributes to be placed in the a tag.
+ */
+function template_preprocess_atsnj_link(&$variables) {
+
+  $file = $variables['file'];
+  $options = [];
+
+  $file_entity = ($file instanceof File) ? $file : File::load($file->fid);
+  // @todo Wrap in file_url_transform_relative(). This is currently
+  // impossible. As a work-around, we currently add the 'url.site' cache context.
+  // To ensure different file URLs are generated for different sites in a.
+  // Multisite setup, including HTTP and HTTPS versions of the same site.
+  // Fix in https://www.drupal.org/node/2646744.
+  $url = file_create_url($file_entity->getFileUri());
+  $variables['#cache']['contexts'][] = 'url.site';
+
+  $mime_type = $file->getMimeType();
+  // Set options as per anchor format described at.
+  // http://microformats.org/wiki/file-format-examples
+  $options['attributes']['type'] = $mime_type . '; length=' . $file->getSize();
+
+  // Use the title as the link text if available.
+  if ($variables['title'] === NULL) {
+    $link_text = $file_entity->getFilename();
+  }
+  else {
+    $link_text = $variables['title'];
+    $options['attributes']['title'] = $file_entity->getFilename();
+  }
+
+  // Classes to add to the file field for icons.
+  // Add a specific class for each and every mime type.
+  $classes = ['file',
+    // Add a more general class for groups of well known MIME types.
+    'file--mime-' . strtr($mime_type, ['/' => '-', '.' => '-']),
+    'file--' . file_icon_class($mime_type),
+  ];
+
+  // Set file classes to the options array.
+  $variables['attributes'] = new Attribute($variables['attributes']);
+  $variables['attributes']->addClass($classes);
+
+  $uri = $file_entity->getFileUri();
+  $parts = explode('://', $uri);
+  $url = 'internal:/file-download/download/' . $parts[0] . '/' . $file_entity->id();
+
+  $variables['link'] = [
+    '#type' => 'link',
+    '#title' => Markup::create($link_text),
+    '#url' => Url::fromUri($url, $options),
+    '#allowed_tags' => ['span'],
+  ];
+
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function atsnj_page_attachments(array &$page) {
+  $page['#attached']['library'][] = 'atsnj/admin_style';
+  $page['#attached']['library'][] = 'file/drupal.file';
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function atsnj_preprocess_block(&$variables) {
+
+  if ('openid_connect_login' == $variables['plugin_id']) {
+    $variables['content']['#attached']['library'][] = 'atsnj/openid';
+  }
+
+}
+
+/**
+ * This makes all menu links that link to external sites to open in new tabs
+ */
+function atsnj_link_alter(&$variables) {
+  if ($variables['url']->isExternal()) {
+    $variables['options']['attributes'] = ['target' => '_blank'];
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function atsnj_theme(){
+  return [
+    'atsnj_file_link' => ['variables' => ['file' => NULL, 'title' => NULL, 'description' => NULL, 'attributes' => []]],
+    'atsnj_file_title' => ['variables' => ['title' => NULL, 'attributes' => []]],
+    'user_login' => [
+      'variables' => [
+        'content' => NULL,
+      ]
+    ],
+    'atsonj' => [
+      'variables' => [
+        'content' => NULL,
+      ]
+    ]
+  ];
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function atsnj_user_login($account) {
+  if (isset($_GET['target'])){
+    $response = new RedirectResponse($_GET['target']);
+    $response->send();
+  };
+
+  $destination = \Drupal::request()->query->get('destination');
+  if ($destination) {
+    $response = new RedirectResponse($destination);
+    $response->send();
+  }
+  return;
+
+}
+
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Modify the user login form: add a class to the CAS Login
+ */
+function atsnj_form_user_login_form_alter(&$form, FormStateInterface $form_state) {
+
+  //if (isset($form['atsnj_portal_salesforce_login'])) {
+
+    $form['advanced'] = array(
+      '#type' => 'details',
+      '#title' => t('Special Login'),
+      '#description' => t('For most users, the <em>NATA Login</em> button is the best way to log in. Only users that do not have a NATA membership, such as site administrators, can use this method to log in. Navigate to the <a href="/user/password">forgot password page</a> if a password reset is required.'),
+      '#open' => FALSE, // Controls the HTML5 'open' attribute. Defaults to FALSE.
+    );
+    $form['advanced']['name'] = $form['name'];
+    $form['advanced']['pass'] = $form['pass'];
+    $form['advanced']['actions'] = $form['actions'];
+    unset($form['name']);
+    unset($form['pass']);
+    unset($form['actions']);
+  //}
+
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Modify the edit user form: hide password field for CAS users
+ */
+function atsnj_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ('user_form' == $form_id) {
+    // Load the current user.
+    $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+
+    if ($user->hasRole('cas_user') && !$user->hasPermission('administer users')) {
+      // Hide the password and ZIP
+      $form['field_zip_code']['#access'] = FALSE;
+      $form['pass']['#access'] = FALSE;
+      $form['current_pass']['#access'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Implements hook_paragraph_view().
+ *
+ * Adds JS to auto-open the Flyer
+ */
+function atsnj_paragraph_view(array &$build, Drupal\paragraphs\ParagraphInterface $paragraph, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
+  $type = $paragraph->getParagraphType()->id();
+  // TODO: support if there are both types on the same page.
+  if (in_array($type,['media_modal', 'media_modal_pdf_'])) {
+    $field_auto_open = $paragraph->get('field_auto_open')->getString();
+    if ($field_auto_open) {
+      $build['#attached']['library'][] = 'core/drupal.dialog.ajax';
+      $build['#attached']['library'][] = 'atsnj/media_modal';
+    }
+  }
+}

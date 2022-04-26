@@ -1,0 +1,51 @@
+atsnj_ebp.base:
+  path: '/admin/atsnj/conference'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'ATSNJ Conference'
+  requirements:
+    _permission: 'administer atsnj ebp module'
+
+atsnj_ebp.mark_attendance:
+  path: '/admin/atsnj/conference/mark-attendance'
+  defaults:
+    _form: '\Drupal\atsnj_ebp\Form\AtsnjEbpMarkAttendanceOptionsForm'
+    _title: 'ATSNJ Conference Attendance'
+  requirements:
+    _permission: 'administer atsnj ebp module'
+
+atsnj_ebp.mark_attendance_node:
+  path: '/admin/atsnj/conference/mark-attendance/{conference_year_id}/{ebp_session_id}'
+  defaults:
+    _form: '\Drupal\atsnj_ebp\Form\AtsnjEbpMarkAttendanceParamsForm'
+    _title: 'Attendance'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer atsnj ebp module'
+
+atsnj_ebp.certifiate:
+  path: '/certificate/{ebp_attendee_id}/{ebp_session_id}'
+  defaults:
+    _controller: '\Drupal\atsnj_ebp\Controller\CertificateController::content'
+    _title: 'Certificate'
+  requirements:
+    _permission: 'access content'
+
+atsnj_ebp.see_attendance_node:
+  path: '/node/{node}/attendance'
+  defaults:
+    _controller: '\Drupal\atsnj_ebp\Controller\AttendanceController::content'
+    _title: 'Attendance'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer atsnj ebp module'
+
+atsnj_ebp.settings:
+  path: '/admin/atsnj/conference/settings'
+  defaults:
+    _form: '\Drupal\atsnj_ebp\Form\AtsnjEbpSettingsForm'
+    _title: 'Conference / EBP Sessions Settings'
+  requirements:
+    _permission: 'administer atsnj ebp module'

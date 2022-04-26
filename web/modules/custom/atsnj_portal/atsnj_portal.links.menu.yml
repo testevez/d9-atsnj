@@ -1,0 +1,14 @@
+atsnj_portal.settings:
+  route_name: atsnj_portal.settings
+  parent: atsnj.admin_atsnj
+  title: 'ATSNJ Portal Settings'
+  description: 'Administer ATSNJ Portal module'
+  weight: 0
+
+atsnj_portal.cas:
+  route_name: atsnj_portal.cas
+  parent: views_view:views.user_administration.page_1
+  title: 'ATSNJ Duplicate Users'
+  description: 'Administer ATSNJ Portal module'
+  weight: 0
+

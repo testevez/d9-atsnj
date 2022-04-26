@@ -1,0 +1,17 @@
+atsnj_ebp.base:
+  route_name: atsnj_ebp.base
+  parent: atsnj.admin_atsnj
+  title: 'Conference'
+  description: 'Administer ATSNJ Conference Functionality'
+
+atsnj_ebp.settings:
+  route_name: atsnj_ebp.settings
+  parent: atsnj_ebp.base
+  title: 'Settings'
+  description: 'ATSNJ Conference Settings Form'
+
+atsnj_ebp.mark_attendance:
+  route_name: atsnj_ebp.mark_attendance
+  parent: atsnj_ebp.base
+  title: 'Mark Attendance'
+  description: 'Set Attendance for a particular EBP Session'

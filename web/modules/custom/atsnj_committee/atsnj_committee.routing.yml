@@ -1,0 +1,25 @@
+atsnj_committee.group.minutes:
+  path: '/group/{group}/minutes'
+  defaults:
+    _controller: '\Drupal\atsnj_committee\Controller\CommitteeMinutesController::minutesList'
+    _title_callback: '\Drupal\atsnj_committee\Controller\CommitteeMinutesController::title'
+  requirements:
+    _permission: 'access atsnj members content'
+atsnj_committee.group.minutes_add:
+  path: '/group/{group}/minutes-add'
+  defaults:
+    _title: 'Upload Minutes'
+    _form: '\Drupal\atsnj_committee\Form\UploadCommitteeMinutes'
+  requirements:
+    _group_permission: 'create group mediaminutes entity'
+  options:
+    _group_operation_route: TRUE
+atsnj_committee.group.minutes_admin:
+  path: '/group/{group}/minutes-admin'
+  defaults:
+    _controller: '\Drupal\atsnj_committee\Controller\CommitteeMinutesController::minutesAdmin'
+    _title_callback: '\Drupal\atsnj_committee\Controller\CommitteeMinutesController::minutesAdminTitle'
+  requirements:
+    _group_permission: 'create group mediaminutes entity'
+  options:
+    _group_operation_route: TRUE

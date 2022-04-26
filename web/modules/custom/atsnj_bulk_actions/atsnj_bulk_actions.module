@@ -1,0 +1,161 @@
+<?php
+
+/**
+ * @file
+ * ATSNJ Bulk Actions module file.
+ */
+
+use Drupal\media\Entity\Media;
+
+/**
+ *  @param \Drupal\node\NodeInterface $node
+ *
+ * @return bool
+ * @throws \Drupal\Core\Entity\EntityStorageException
+ */
+function _atsnj_bulk_actions_make_cat_a_cert($node = NULL) {
+  if ($node->bundle() == 'ebp_attendee') {
+
+    // Clear existing CAT A cert
+    $media_files = [];
+    $node->set('field_cat_a_certificate', $media_files);
+
+    // Make CAT A certs for this user
+    $conf_year = $node->get('field_conference_year')->getValue();
+
+    foreach ($conf_year as $i => $array) {
+      $uri = 'https://atsnj.org/wkhtmltopdf/generatepdf';
+
+      if (!$array['target_id']) {
+        continue;
+      }
+
+      try {
+        $response = \Drupal::httpClient()->get($uri,
+          array(
+            'headers' => array(
+              'Accept' => 'text/plain'
+            ),
+            'query' => [
+              'url' => 'https://atsnj.org/certificate/' . $node->id() . '/cat-a',
+            ]
+          )
+        );
+        $data = (string)$response->getBody();
+        if (empty($data)) {
+          return FALSE;
+        }
+      } catch (RequestException $e) {
+        return FALSE;
+      }
+
+      $file_created = 'https://www.atsnj.org/sites/default/files/wkhtmltopdf/https%253A%252F%252Fatsnj.org%252Fcertificate%252F' . $node->id() . '%252F' . 'cat-a' . '.pdf';
+
+      // Create media and assign pdf to it
+      $filename = $node->getTitle() . ' (2022).pdf';
+      $pdf_data = file_get_contents($file_created);
+      $file_image = file_save_data($pdf_data, 'public://certificates/' . $filename, FILE_EXISTS_REPLACE);
+
+      $media_file = Media::create([
+        'bundle' => 'cat_a_certificate',
+        'name' => $filename,
+        'field_media_file_3' => [
+          'target_id' => $file_image->id(),
+        ],
+        'field_conference_year' => [
+          'target_id' => $array['target_id'],
+        ],
+      ]);
+      $media_file->save();
+      $media_files[] = array(
+        'target_id' => $media_file->id(),
+      );
+
+    }
+
+    // Assign media to Attendee
+    $node->set('field_cat_a_certificate', $media_files);
+    $node->save();
+
+  }
+  else {
+    \Drupal::messenger()->addMessage('This entity is not eligible for a certificate.');
+
+  }
+}
+
+/**
+ *  @param \Drupal\node\NodeInterface $node
+ *
+ * @return bool
+ * @throws \Drupal\Core\Entity\EntityStorageException
+ */
+function _atsnj_bulk_actions_make_certs($node = NULL) {
+  if ($node->bundle() == 'ebp_attendee') {
+
+    // Clear existing certs
+    $media_files = [];
+    $node->set('field_certificate_reference', $media_files);
+
+    // Make all certs for this user
+    $ebp_sessions = $node->get('field_conference_reference')->getValue();
+    foreach ($ebp_sessions as $i => $array) {
+      $uri = 'https://atsnj.org/wkhtmltopdf/generatepdf';
+
+      if (!$array['target_id']) {
+        continue;
+      }
+
+      try {
+        $response = \Drupal::httpClient()->get($uri,
+          array(
+            'headers' => array(
+              'Accept' => 'text/plain'
+            ),
+            'query' => [
+              'url' => 'https://atsnj.org/certificate/' . $node->id() . '/' . $array['target_id'],
+            ]
+          )
+        );
+        $data = (string)$response->getBody();
+        if (empty($data)) {
+          return FALSE;
+        }
+      } catch (RequestException $e) {
+        return FALSE;
+      }
+
+      $file_created = 'https://www.atsnj.org/sites/default/files/wkhtmltopdf/https%253A%252F%252Fatsnj.org%252Fcertificate%252F' . $node->id() . '%252F' . $array['target_id'] . '.pdf';
+
+      // Create media and assign pdf to it
+      $filename = $node->getTitle() . ' (' . $array['target_id'] . ').pdf';
+      $pdf_data = file_get_contents($file_created);
+      $file_image = file_save_data($pdf_data, 'public://certificates/' . $filename, FILE_EXISTS_REPLACE);
+      $media_file = Media::create([
+        'bundle' => 'certificate',
+        'name' => $filename,
+        'field_media_file' => [
+          'target_id' => $file_image->id(),
+        ],
+        'field_ebp_session_reference' => [
+          'target_id' => $array['target_id'],
+        ],
+      ]);
+      $media_file->save();
+      $media_files[] = array(
+        'target_id' => $media_file->id(),
+      );
+
+    }
+
+    // Assign media to Attendee
+    $node->set('field_certificate_reference', $media_files);
+    $node->save();
+
+  }
+  else {
+    \Drupal::messenger()->addMessage('This entity is not eligible for a certificate.');
+
+  }
+
+}

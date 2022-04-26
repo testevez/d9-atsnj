@@ -1,0 +1,11 @@
+certificate:
+  version: 1.x
+  css:
+    theme:
+      css/atsnj_ebp.certificate.css: {}
+
+webform:
+  version: 1.x
+  css:
+    theme:
+      css/atsnj_ebp.webform.css: {}

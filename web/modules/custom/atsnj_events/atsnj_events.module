@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file ATSNJ Events
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function atsnj_events_theme($existing, $type, $theme, $path) {
+  return array(
+    'pdf_popup_field_formatter' => array(
+      'render element' => 'element',
+    ),
+  );
+}
+
+/**
+ * Prepares variables for pdf_popup_field_formatter element templates.
+ *
+ * Default template: pdf-popup-field-formatter.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ */
+function template_preprocess_pdf_popup_field_formatter(array &$variables) {
+  $settings = $variables['element']['#settings'];
+  if (isset($settings['tag'])) $variables['tag'] = $settings['tag'];
+  if (isset($variables['element']['#fid'])) $variables['fid'] = $variables['element']['#fid'];
+  if (isset($variables['element']['#file_url'])) $variables['file_url'] = $variables['element']['#file_url'];
+  if (isset($variables['element']['#popup_width'])) $variables['popup_width'] = $variables['element']['#popup_width'];
+}

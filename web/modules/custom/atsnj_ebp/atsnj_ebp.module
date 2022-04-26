@@ -1,0 +1,415 @@
+<?php
+
+use Drupal\user\Entity\User;
+use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Config;
+use Drupal\Core\ConfigFactory;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+use Drupal\rules\Core\RulesActionBase;
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\comment\Entity\Comment;
+use Drupal\message\Entity\Message;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\webform\WebformSubmissionInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\paragraphs\Entity\Paragraph;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\image\Entity\ImageStyle;
+
+define('ATSNJ_2019_EBP_SESSION_ID', 2170);
+
+/**
+ * Implements hook_form_alter().
+ */
+function atsnj_ebp_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  /* @var Drupal\Core\Entity\FieldableEntityInterface $entity */
+  $formObject = $form_state->getFormObject();
+  if ($formObject instanceof \Drupal\Core\Entity\EntityFormInterface) {
+    $entity = $formObject->getEntity();
+    if (
+      $entity->getEntityTypeId() === 'webform_submission') {
+      $form['#attached']['library'][] = 'atsnj_ebp/webform';
+    }
+  }
+}
+
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ *
+ * Assigns evaluation submissions to attendees
+ */
+function atsnj_ebp_webform_submission_insert(Drupal\Core\Entity\EntityInterface $entity) {
+
+  $webform_submission = $entity;
+  // Load the data in the webform submission.
+  $data = $webform_submission->getData();
+  $webform = $webform_submission->getWebform();
+  $webform_id = $webform->id();
+
+  // Get the reverse reference to the session
+  $ebp_session_id = _atsnj_ebp_get_session_id_from_evaluation($webform_id);
+
+  if ($ebp_session_id)  {
+
+    // Load EBP settings.
+    $config = \Drupal::config('atsnj_ebp.settings');
+    $ebp_current_year = $config->get('current_year');
+
+    // Find attendee by email
+    $email = $data['attendee_email'];
+
+  } else if (isset($data['attendee_email_year'])) {
+    // This webform  has no EBP session ID so its not an EBP Evaluation
+    // Let's check it its a CAT A
+
+    // Find attendee by email if it has one
+    $email = $data['attendee_email_year'];
+
+  }
+  else {
+    // Nothing to do here.
+    return;
+  }
+
+  if (!$email) {
+    // Logs an error
+    \Drupal::logger('atsnj_ebp')->error(('@webform_id: was submitted with attendee email of @email but the attendee was not able to be loaded.'),
+      array(
+        '@webform_id' => $webform_id,
+        '@email' => $data['email'],
+      ));
+    return;
+  }
+
+  $attendee = _atsnj_load_attendees_by_email($email, $ebp_session_id, $ebp_current_year);
+
+  if ($attendee) {
+    $sid = $webform_submission->id();
+
+    $submissions = $attendee->get('field_evaluation_submissions')->getValue();
+    $submissions[] = ['target_id' => $sid];
+
+    $attendee->set('field_evaluation_submissions', $submissions);
+    $attendee->save();
+  }
+  else {
+    // Logs an error
+    \Drupal::logger('atsnj_ebp')->error(('@webform_id: was submitted with attendee email of @email but the attendee was not able to be loaded.'),
+      array(
+        '@webform_id' => $webform_id,
+        '@email' => $data['email'],
+      ));
+    return;
+  }
+
+}
+
+/**
+ * Implements hook_token_info().
+ */
+function atsnj_ebp_token_info() {
+  $info = array();
+
+  $info['tokens']['site']['atsnj-ebp-full-name'] = [
+    'name' => t("EBP Full Name for Webform"),
+    'description' => t("Determines a Full Name based on the email."),
+  ];
+  $info['tokens']['site']['atsnj-ebp-boc-number'] = [
+    'name' => t("EBP BOC # for Webform"),
+    'description' => t("Determines a BOC # based on the email."),
+  ];
+  $info['tokens']['site']['atsnj-ebp-conf-number'] = [
+    'name' => t("EBP Conference # for Webform"),
+    'description' => t("Determines a Conference # based on the email."),
+  ];
+  $info['tokens']['site']['atsnj-ebp-email'] = [
+    'name' => t("EBP email address "),
+    'description' => t("Used as the ") .'<em>'. t("from") .'</em>'. t(" address for the certificate emails and the email to send EBP support requests to."),
+  ];
+  // Return them.
+  return $info;
+}
+
+/**
+ * Implements hook_tokens().
+ */
+function atsnj_ebp_tokens($type, $tokens, array $data, array $options, BubbleableMetadata $bubbleable_metadata) {
+
+  $replacements = array();
+  if ($type == 'site') {
+    foreach ($tokens as $name => $original) {
+
+      if (strpos($name, 'atsnj-ebp-') === 0) {
+        // Load EBP settings
+        $config = \Drupal::config('atsnj_ebp.settings');
+        $ebp_current_year = $config->get('current_year');
+        // Get the reverse reference to the session
+        $route_match = Drupal::routeMatch()->getParameter('webform');
+        if (is_object($route_match)) {
+          $webform_id = $route_match->id();
+          $ebp_session_id = _atsnj_ebp_get_session_id_from_evaluation($webform_id);
+        }
+        else {
+          $ebp_session_id = _atsnj_ebp_get_session_id_from_evaluation($route_match);
+        }
+
+      }
+
+      // Find the desired token by name
+      switch ($name) {
+        case 'atsnj-ebp-full-name':
+          if (isset($_POST['attendee_email'])) {
+            $email = $_POST['attendee_email'];
+            $attendee = _atsnj_load_attendees_by_email($email, $ebp_session_id, $ebp_current_year);
+            if ($attendee) $replacements[$original] = $attendee->getTitle();
+          }
+
+          break;
+        case 'atsnj-ebp-boc-number':
+          if (isset($_POST['attendee_email'])) {
+            $email = $_POST['attendee_email'];
+            $attendee = _atsnj_load_attendees_by_email($email, $ebp_session_id, $ebp_current_year);
+            if ($attendee) $replacements[$original] = $attendee->get('field_boc_number')->getString(); //field_conference_id
+          }
+          break;
+        case 'atsnj-ebp-conf-number':
+          if (isset($_POST['attendee_email'])) {
+            $email = $_POST['attendee_email'];
+            $attendee = _atsnj_load_attendees_by_email($email, $ebp_session_id, $ebp_current_year);
+            if ($attendee) $replacements[$original] = $attendee->get('field_conference_id')->getString();
+          }
+          break;
+        case 'atsnj-ebp-email':
+          // Load system config
+          $system_site_config = \Drupal::config('system.site');
+          $site_email = $system_site_config->get('mail');
+          // Load EBP config
+          $config = \Drupal::config('atsnj_ebp.settings');
+          $email = $config->get('certificate_email_from');
+          $replacements[$original] = ($email ? $email : $site_email);
+      }
+    }
+  }
+  // Return the replacements.
+  return $replacements;
+}
+
+/**
+ * Implements hook_mail().
+ */
+function atsnj_ebp_mail($key, &$message, $params) {
+  $options = array(
+    'langcode' => $message['langcode'],
+  );
+  switch ($key) {
+    case 'send_certificate_mail':
+      // Load config
+      $config = \Drupal::config('atsnj_ebp.settings');
+      $from = $config->get('certificate_email_from');
+      if (!$from) {
+        $from = \Drupal::config('system.site')->get('mail'); // to use site email account
+      }
+
+      // Check values for session_id references
+      $subject_format = $config->get('textformat_subject')['format'];
+      $subject_value = _atsnj_session_id_references($config->get('textformat_subject')['value'], $params);
+      $element = array(
+        '#type' => 'processed_text',
+        '#text' => $subject_value,
+        '#format' => $subject_format,
+      );
+      $subject = render($element)->__toString();
+
+      $body_format = $config->get('textformat_body')['format'];
+      $body_value = _atsnj_session_id_references($config->get('textformat_body')['value'], $params);
+      $element = array(
+        '#type' => 'processed_text',
+        '#text' => $body_value,
+        '#format' => $body_format,
+      );
+      $body = render($element)->__toString();
+
+      $message['from'] = $from;
+      $message['subject'] = $subject;
+      $message['body'][] = $body;
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed; delsp=yes';
+      $message['headers']['From'] = $from;
+      if (isset($params['attachments'])) {
+        $message['params']['attachments'] = $params['attachments'];
+        $message['attachments'] = $params['attachments'];
+      }
+      break;
+    case 'send_cat_a_certificate_mail':
+      // Load config
+      $config = \Drupal::config('atsnj_ebp.settings');
+      $from = $config->get('certificate_email_from');
+      if (!$from) {
+        $from = \Drupal::config('system.site')->get('mail'); // to use site email account
+      }
+
+      // Check values for session_id references
+      $subject_format = $config->get('cat_a_textformat_subject')['format'];
+      $subject_value = $config->get('cat_a_textformat_subject')['value'];
+
+      $element = array(
+        '#type' => 'processed_text',
+        '#text' => $subject_value,
+        '#format' => $subject_format,
+      );
+      $subject = render($element)->__toString();
+
+      $body_format = $config->get('cat_a_textformat_body')['format'];
+      $body_value = $config->get('cat_a_textformat_body')['value'];
+
+      $element = array(
+        '#type' => 'processed_text',
+        '#text' => $body_value,
+        '#format' => $body_format,
+      );
+      $body = render($element)->__toString();
+
+      $message['from'] = $from;
+      $message['subject'] = $subject;
+      $message['body'][] = $body;
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed; delsp=yes';
+      $message['headers']['From'] = $from;
+      if (isset($params['attachments'])) {
+        $message['params']['attachments'] = $params['attachments'];
+        $message['attachments'] = $params['attachments'];
+      }
+      break;
+  }
+}
+
+/**
+ * Helper function to support sessionid references
+ */
+function _atsnj_session_id_references($string, $params){
+  $session_id = $params['session_id'];
+  $session = Node::load($session_id);
+
+  $title = $session->getTitle();
+
+  $string = str_replace('[site:ebp-session:title]', $title, $string);
+
+  return $string;
+}
+
+/**
+ * Implements hook_webform_element_alter().
+ *
+ * @param array              $element
+ * @param FormStateInterface $form_state
+ * @param array              $context
+ */
+function atsnj_ebp_webform_element_alter(array &$element, FormStateInterface $form_state, array $context) {
+  if (isset($element['#webform_id'])) {
+
+    $ids = explode('--', $element['#webform_id']);
+    // $webformid = $ids[0];
+    $component_id = $ids[1];
+
+    if ('attendee_email' == $component_id) {
+      $element['#element_validate'][] = array(
+        'Drupal\atsnj_ebp\Validate\AttendeeEmailCheck',
+        'validate'
+      );
+    }
+
+    if ('attendee_email_year' == $component_id) {
+      $element['#element_validate'][] = array(
+        'Drupal\atsnj_ebp\Validate\AttendeeEmailCheckYear',
+        'validate'
+      );
+    }
+
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function atsnj_ebp_theme() {
+  return [
+    'astnj_ebp_certificate' => [
+      'variables' => [
+        'name' => NULL,
+        'session_title' => NULL,
+        'presented_by' => NULL,
+        'boc' => NULL,
+        'at' => NULL,
+        'date' => NULL,
+      ],
+    ],
+    'astnj_cat_a_certificate' => [
+      'variables' => [
+        'name' => NULL,
+        'boc' => NULL,
+        'at' => NULL,
+        'date' => NULL,
+      ],
+    ],
+  ];
+}
+
+/**
+ *
+ * Gets the Session ID via reverse reference
+ *
+ * @param integer $webform_id
+ */
+function _atsnj_ebp_get_session_id_from_evaluation($webform_id) {
+
+  // Get the reverse reference to the session
+  $result = \Drupal::entityQuery('node')
+    ->condition('field_ebp_evaluation', $webform_id)
+    ->condition('type', 'ebp_session');
+  $session_ids = $result->execute();
+
+  if(count($session_ids) == 0) {
+    return FAlSE;
+  }
+
+  $ebp_session_id = current($session_ids);
+  return $ebp_session_id;
+
+}
+
+/**
+ *
+ * Loads Attendee information via EFQ
+ *
+ * @param string $email
+ * @param integer $ebp_session_id
+ * @param integer $ebp_session_year_tid
+ *
+ * @return mixed
+ */
+function _atsnj_load_attendees_by_email($email, $ebp_session_id = 0, $ebp_session_year_tid = 0) {
+
+  if (!$ebp_session_year_tid) {
+    // Load EBP settings
+    $config = \Drupal::config('atsnj_ebp.settings');
+    $ebp_session_year_tid = $config->get('current_year');
+  }
+
+  $result = \Drupal::entityQuery('node')
+    ->condition('field_email', $email)
+    ->condition('type', 'ebp_attendee');
+
+  if ($ebp_session_id) {
+    $result->condition('field_conference_reference', (integer) $ebp_session_id);
+  }
+
+  if ($ebp_session_year_tid) {
+    $result->condition('field_conference_year', (integer) $ebp_session_year_tid);
+  }
+  $attendee_ids = $result->execute();
+  $attendees = Node::loadMultiple($attendee_ids);
+  return current($attendees);
+}

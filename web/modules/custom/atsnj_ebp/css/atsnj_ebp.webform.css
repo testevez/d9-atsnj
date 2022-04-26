@@ -1,0 +1,10 @@
+form.webform-submission-form .webform-type-fieldset {
+    padding: 0 1em;
+    border: solid 1px #dc9a36;
+}
+
+form.webform-submission-form .webform-type-fieldset > legend {
+    padding: .5em;
+    border: solid 1px #DC9A42;
+    font-size: 1em;
+}

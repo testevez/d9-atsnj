@@ -1,0 +1,6 @@
+atsnj_portal.dashboard:
+  title: Dashboard
+  route_name: atsnj_portal.dashboard
+  base_route: entity.user.canonical
+  requirements:
+    _custom_access: '\Drupal\atsnj_portal\Controller\AtsnjDashboard::access'

@@ -1,0 +1,57 @@
+<?php
+
+/**
+ * @file
+ * ATSNJ Committee module file.
+ */
+use Drupal\Component\Render\MarkupInterface;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\views\Plugin\Derivative\ViewsLocalTask;
+use Drupal\views\ViewEntityInterface;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Entity\View;
+use Drupal\views\Render\ViewsRenderPipelineMarkup;
+use Drupal\views\Views;
+use Drupal\user\Entity\User;
+use Drupal\paragraphs\Entity\Paragraph;
+
+/**
+ * Implements hook_theme().
+ */
+function atsnj_committee_theme(){
+  return [
+    'atsnj_committee_members' => [
+      'variables' => [
+        'results' => array(),
+        'title' => NULL,
+      ]
+    ],
+  ];
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ */
+function atsnj_committee_local_tasks_alter(&$local_tasks) {
+  $current_route = \Drupal::routeMatch();
+  $route_name = $current_route->getRouteName();
+  // Get actual user role.
+  $current_user = \Drupal::currentUser();
+  if ($current_user->id() == 1) {
+    return;
+  }
+  $current_user_roles = $current_user->getRoles();
+  if (in_array('administrator', $current_user_roles)) {
+    return;
+  }
+
+  unset($local_tasks["view.group_nodes.page_1"]); // All nodes
+  unset($local_tasks['group.content']); // All Entities.
+  unset($local_tasks['group.delete_form']); // Delete group.
+
+}

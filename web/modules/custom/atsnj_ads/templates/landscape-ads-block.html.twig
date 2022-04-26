@@ -1,0 +1,11 @@
+
+<div id="landscape-ad-block-wrap">
+    {% for item in items %}
+        <div class="landscape-ad-block-item {% if loop.first %} is-showing {% endif %}">
+            {{ item.field_sponsorship_badge_render }}
+            <a href="{{ item.field_sponsor_url_value }}" target="_blank" rel="nofollow">
+                {{ item.field_landscape_ad_image_render }}
+            </a>
+        </div>
+    {% endfor %}
+</div>

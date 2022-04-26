@@ -1,0 +1,23 @@
+#block-importantinformationacknowledgementmodal {
+  display: none;
+}
+
+.ui-dialog-content.ui-front.ui-widget-content {
+  text-align: left;
+}
+
+.block-acknowledge-block details {
+  border: solid 2px red;
+  /* background-color: #FFCCCB; */
+}
+.block-acknowledge-block summary {
+  font-weight: bold;
+  color: red;
+}
+
+@media all and (max-width: 992px) {
+  .region-content .block-acknowledge-block {
+    display: none; /* Hide this block for all except mobile. */
+  }
+}
+

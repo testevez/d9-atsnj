@@ -1,0 +1,65 @@
+<?php
+
+/**
+ * @file
+ */
+
+define('ATSNJ_PORTAL_MEMBERS_ONLY_TID', 2);
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_user_login().
+ */
+function atsnj_portal_user_login($account) {
+  $zip_code = $account->field_zip_code->value;
+  if (isset($zip_code)) {
+    $first_two = substr ( $zip_code , 0, 2 );
+    if (in_array($first_two, array('07', '08'))) {
+      // In state
+      if (!$account->hasRole('cas_user_in_state')) {
+        $account->addRole('cas_user_in_state');
+      }
+    }
+    else {
+      // Out of state
+      if ($account->hasRole('cas_user_in_state')) {
+        $account->removeRole('cas_user_in_state');
+      }
+    }
+  }
+  $account->save();
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function atsnj_portal_form_openid_connect_login_form_alter(&$form, FormStateInterface $form_state) {
+  // Set the name of the login button
+  if (isset($form['openid_connect_client_generic_login'])) {
+    $form['atsnj_portal_salesforce_login'] = array(
+      '#type' => 'submit',
+      '#value' => t('Log in via @client_title', [
+        '@client_title' => 'NATA',
+      ]),
+      '#name' => 'generic',
+      '#prefix' => '<div>',
+      '#suffix' => '</div>',
+    );
+    $form['atsnj_portal_salesforce_login']['#attributes']['class'][] = 'button-style';
+    $form['#attached']['library'][] = 'atsnj_portal/openid_login';
+
+  }
+
+}
+
+function _atsnj_portal_get_duplicate_cas_users() {
+  $query = \Drupal::entityQuery('user')
+    ->condition('status', 1)
+    ->condition('changed', REQUEST_TIME, '<')
+    ->condition('title', 'cat', 'CONTAINS')
+    ->condition('field_tags.entity.name', 'cats');
+
+  $nids = $query->execute();
+}

@@ -1,0 +1,6 @@
+atsnj_events.image_popup_render:
+  path: '/atsnj_events/pdf-render/{fid}'
+  defaults:
+    _controller: '\Drupal\atsnj_events\Controller\PDFPopup::render'
+  requirements:
+    _permission: 'access content'

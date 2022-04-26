@@ -1,0 +1,7 @@
+atsnj_ads.settings:
+  path: '/admin/atsnj/ads'
+  defaults:
+    _controller: '\Drupal\atsnj_ads\Controller\AtsnjAdsController::content'
+    _title: 'ATSNJ Ads Settings'
+  requirements:
+    _permission: 'administer atsnj_ads'

@@ -1,0 +1,16 @@
+name: ATSNJ Bulk Operations / Actions
+description: This module provides bulks actions for the ATSNJ Drupal 8 site.
+package: ATSNJ
+
+type: module
+core_version_requirement: ^8.8 || ^9
+dependencies:
+  - drupal:views
+  - drupal:views_bulk_operations
+
+test_dependencies:
+ - drupal:image
+
+php: 5.6
+
+hidden: false

@@ -1,0 +1,21 @@
+atsnj_comittee.group_content.minutes:
+  title: Minutes
+  base_route: 'entity.group.canonical'
+  route_name: atsnj_committee.group.minutes
+  requirements:
+    _permission: 'access atsnj members content'
+  weight: 15
+atsnj_comittee.group_content.minutes_admin:
+  title: Minutes Administration
+  base_route: 'entity.group.canonical'
+  route_name: atsnj_committee.group.minutes_admin
+  requirements:
+    _group_permission: 'create group mediaminutes entity'
+  weight: 16
+atsnj_comittee.group_content.minutes_add:
+  title: Upload Minutes
+  base_route: 'entity.group.canonical'
+  route_name: 'atsnj_committee.group.minutes_add'
+  requirements:
+    _group_permission: 'create group mediaminutes entity'
+  weight: 17

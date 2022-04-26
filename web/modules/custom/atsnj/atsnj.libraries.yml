@@ -1,0 +1,38 @@
+admin_style:
+  version: 1.x
+  css:
+    theme:
+      css/admin_style.css: {}
+
+media_modal:
+  version: 1.x
+  js:
+    js/media_modal.js: {}
+  dependencies:
+  - core/jquery
+  - core/drupal.ajax
+  - core/drupal
+  - core/drupalSettings
+  - core/jquery.once
+
+acknowledge:
+  version: 1.x
+  js:
+    js/acknowledge.js: {}
+  css:
+    theme:
+      css/acknowledge.css: {}
+  dependencies:
+  - core/jquery
+  - core/drupal.ajax
+  - core/drupal
+  - core/drupalSettings
+  - core/jquery.once
+  - core/jquery.cookie
+
+openid:
+  version: 1.x
+  css:
+    theme:
+      css/openid.css: {}
+      

@@ -1,0 +1,10 @@
+<div class="pdfpreview" id="pdfpreview-{{ fid }}">
+  <{{ tag }} class="pdfpreview-image-wrapper">
+  <a href=" {{ file_url }}" class='use-ajax' data-dialog-type='modal' data-dialog-options='{"width":{{ popup_width }}}'>
+  {{ element }}
+  </a>
+  </{{ tag }}>
+  {% if description %}
+    {{ description }}
+  {% endif %}
+</div>

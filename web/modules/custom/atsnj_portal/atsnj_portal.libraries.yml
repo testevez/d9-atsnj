@@ -1,0 +1,5 @@
+openid_login:
+  version: 1.x
+  css:
+    theme:
+      css/openid_login.css: {}

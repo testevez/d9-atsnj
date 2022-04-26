@@ -1,0 +1,23 @@
+nimble_ams.base:
+  path: '/admin/config/people/nimble-ams'
+  defaults:
+    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
+    _title: 'Nimble AMS'
+  requirements:
+    _permission: 'administer nimble ams module'
+
+nimble_ams.settings:
+  path: '/admin/config/people/nimble-ams/settings'
+  defaults:
+    _form: '\Drupal\nimble_ams\Form\NimbleAmsSettingsForm'
+    _title: 'Settings'
+  requirements:
+    _permission: 'administer nimble ams module'
+
+nimble_ams.sso_login:
+  path: '/login'
+  defaults:
+    _form: '\Drupal\nimble_ams\Form\NimbleAmsSsoLoginForm'
+    _title: 'Settings'
+  requirements:
+    _permission: 'access sso login'

@@ -1,0 +1,23 @@
+name: ATSNJ Events
+description: Supports ATSNJ Events
+package: ATSNJ
+
+type: module
+core_version_requirement: ^8.8 || ^9
+
+dependencies:
+  - datetime:datetime
+  - link:link
+  - drupal:views
+  - taxonomy_menu:taxonomy_menu
+  - node
+  - block
+  - pdf
+  - pdfpreview
+
+test_dependencies:
+ - drupal:image
+
+php: 7.2
+
+hidden: false

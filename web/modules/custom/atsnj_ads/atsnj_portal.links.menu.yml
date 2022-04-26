@@ -1,0 +1,6 @@
+atsnj_ads.settings:
+  route_name: atsnj_ads.settings
+  parent: atsnj.admin_atsnj
+  title: 'ATSNJ Ads Settings'
+  description: 'Administer ATSNJ Ads module'
+  weight: -5

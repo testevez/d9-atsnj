@@ -1,0 +1,14 @@
+name: ATSNJ Nominations
+description: Code and support for the ATSNJ Nomination process for scholarship and awards
+package: ATSNJ
+
+type: module
+version: 1.0
+core_version_requirement: ^8.8 || ^9
+
+dependencies:
+- drupal:webform
+
+php: 5.6
+
+hidden: false

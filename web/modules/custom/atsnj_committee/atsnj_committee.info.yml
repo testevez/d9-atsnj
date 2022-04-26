@@ -1,0 +1,17 @@
+name: ATSNJ Commitee
+description: This module support committee functionality for ATSNJ site
+package: ATSNJ
+
+type: module
+core_version_requirement: ^8.8 || ^9
+
+dependencies:
+  - datetime:datetime
+  - link:link
+  - drupal:views
+  - taxonomy_menu:taxonomy_menu
+  - node
+  - block
+  - atsnj
+  - atsnj_admin
+

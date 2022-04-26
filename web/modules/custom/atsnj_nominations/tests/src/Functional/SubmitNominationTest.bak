@@ -1,0 +1,55 @@
+<?php
+
+
+// There are four basic steps involved in building a test:
+
+// Creating the structure (just creating a class that inherits from \Drupal\Tests\BrowserTestBase or a similar browser test class)
+// Initializing the test case with whatever user creation or configuration needs to be done
+// Creating actual tests within the test case
+// And, of course, trying desperately to figure out why our test doesn't work the way we expect, and debugging the test (and perhaps the module)
+
+//To start, we just need a bit of boilerplate extending BrowserTestBase.
+
+namespace Drupal\Tests\rules\Functional;
+
+use Drupal\Tests\BrowserTestBase;
+
+/**
+ * Tests that the Nomination page is reachable.
+ *
+ * @group atsnj_nominations
+ */
+class SubmitNominationTest extends BrowserTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  protected static $modules = ['webform', 'atsnj_nominations'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+
+    // Do some set up if needed
+  }
+
+  /**
+   * Tests that the reaction rule listing page works.
+   */
+  public function testNominationPage() {
+    $account = $this->drupalCreateUser([]);
+    $this->drupalLogin($account);
+
+    $this->drupalGet('nominate');
+    $this->assertSession()->statusCodeEquals(200);
+
+    // Test that there is an empty reaction rule listing.
+    $this->assertSession()->pageTextContains('There is no Reaction Rule yet.');
+  }
+
+
+}

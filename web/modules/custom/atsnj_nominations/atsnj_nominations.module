@@ -1,0 +1,550 @@
+<?php
+
+use Drupal\user\Entity\User;
+use Drupal\Core\Form\ConfigFormBase;
+use Drupal\Core\Config;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\node\NodeInterface;
+use Drupal\rules\Core\RulesActionBase;
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\comment\Entity\Comment;
+use Drupal\message\Entity\Message;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\webform\WebformSubmissionInterface;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\paragraphs\Entity\Paragraph;
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function atsnj_nominations_webform_submission_insert(Drupal\Core\Entity\EntityInterface $entity) {
+  _atsnj_assign_submission($entity);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function atsnj_nominations_node_presave(Drupal\Core\Entity\EntityInterface $entity) {
+
+  $original = $entity->original;
+
+  switch ($entity->bundle()) {
+    case 'nomination':
+      // Check for an approval
+      if ($original) {
+        if ((!$original->isPublished()) && ($entity->isPublished())) {
+          // An approval is happening
+
+          // Collect type config
+          $tid = $entity->get('field_nomination_type')->getString();
+          $term = Term::load($tid);
+
+          // check for any and all emails that must go out
+          $emails = _atsnj_determine_nomination_emails($term, $entity);
+
+          $updated_node =_atsnj_nominations_send_emails($emails, $entity, FALSE);
+          if ($updated_node) {
+            $entity = $updated_node;
+          }
+        }
+      }
+      // Update completion of a nomination
+      _atsnj_nominations_update_completion($entity);
+      break;
+  }
+
+}
+
+/**
+ * Implements hook_mail().
+ */
+function atsnj_nominations_mail($key, &$message, $params) {
+  $options = array(
+    'langcode' => $message['langcode'],
+  );
+  switch ($key) {
+    case 'send_nomination_mail':
+      // Load config
+      $config = \Drupal::config('atsnj_nominations.settings');
+      $from = $config->get('from');
+
+      //$message['from'] = \Drupal::config('system.site')->get('mail'); // to use site email account
+      $message['from'] = $from;
+      $message['subject'] = $params['subject'];
+      $message['body'][] = $params['message'];
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed; delsp=yes';
+      $message['headers']['From'] = $from;
+
+      break;
+  }
+}
+
+/**
+ * Implements hook_webform_element_alter().
+ *
+ * @param array              $element
+ * @param FormStateInterface $form_state
+ * @param array              $context
+ */
+function atsnj_nominations_webform_element_alter(array &$element, FormStateInterface $form_state, array $context) {
+  // check for desired
+  $form_ids = _atsnj_get_form_ids();
+  foreach($form_ids as $form_id) {
+    if (isset($element['#webform_id'])) {
+      if (strpos($element['#webform_id'], '--nomination_node')) {
+        $element['#element_validate'][] = array(
+          'Drupal\atsnj_nominations\Validate\RedundantSubmissionConstraint',
+          'validate'
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Helper function to determine who to send Nomination alerts to
+ */
+function _atsnj_get_users_nomination_message($role = FALSE) {
+
+  if (!$role) {
+    $role = 'awards_and_scholarships';
+  }
+
+  $ids = \Drupal::entityQuery('user')
+    ->condition('status', 1)
+    ->condition('roles', $role)
+    ->execute();
+
+  $users = User::loadMultiple($ids);
+  return $users;
+}
+
+/**
+ * Helper function to determine a nomination node's met and missing submissions
+ */
+function _atsnj_nomination_status($term, $node) {
+
+  $webforms_needed = [];
+  foreach ($term as $i => $stuff) {
+
+    if (strpos($i,'field_followup_webform') === 0) {
+      $webform = $term->get($i)->getvalue();
+      if ($array = current($webform)) {
+        $webforms_needed[] = $array['target_id'];
+      }
+    }
+  }
+
+  // Collect submission(s) information from the node
+  $subs = $node->get('field_nomination_submission')->getValue();
+  $sids = array();
+  foreach ($subs as $sub) {
+    $sid = $sub['target_id'];
+    $sids[] = $sid;
+  }
+  $submissions = \Drupal\webform\Entity\WebformSubmission::loadMultiple($sids);
+  $webforms_submitted =[];
+  foreach ($webforms_needed as $webform_needed) {
+    $id = $webform_needed;
+    // check the node for webform submissions of this id
+    foreach ($submissions as $submission) {
+      $webform = $submission->getWebform();
+      $webform_id = $webform->id();
+
+      if ($webform_id == $id) {
+        $webforms_submitted[] = $webform_id;
+      }
+
+    }
+  }
+
+  $webforms_not_submitted = [];
+  foreach ($webforms_needed as $webform_needed) {
+    if (!in_array($webform_needed, $webforms_submitted)) {
+      $webforms_not_submitted[] = $webform_needed;
+    }
+  }
+
+  return [
+    'webforms_submitted' => $webforms_submitted,
+    'webforms_needed' => $webforms_needed,
+    'webforms_not_submitted' => $webforms_not_submitted,
+  ];
+
+}
+
+/**
+ * Helper function to track form_ids of the nomination process
+ */
+function _atsnj_get_form_ids() {
+
+  $ids = [
+      'student_s_application_for_the_sc',
+      'nominee-information-for-distingu',
+      'victor-d-recine-memorial-scholar',
+      'victor_d_recine_memorial_guid',
+      'certified_athletic_trainer_super',
+      'program_director_nomination_form',
+      'team_physician_nomination_form',
+  ];
+  return $ids;
+
+}
+
+/**
+ * Helper function to determine who gets sent what email
+ */
+function _atsnj_determine_nomination_emails($term, $node, $constrain = NULL) {
+
+  // Load config
+  $config = \Drupal::config('atsnj_nominations.settings');
+
+  // Collect submission information
+  $sids = $node->get('field_nomination_submission')->getValue();
+  $first = current($sids);
+  $sid = $first['target_id'];
+  $submission = \Drupal\webform\Entity\WebformSubmission::load($sid);
+  $data = $submission->getData();
+  // Transform id into label
+  $term_id = $term->id();
+  if (isset($data['nomination_type']) && $data['nomination_type'] == $term_id) {
+    $data['nomination_type'] = $term->label();
+  }
+
+  $fields_to_check = [
+    'field_approval_message_to_nomina' => [
+      'message' =>  $term->get('field_approval_message_to_nomina')->getvalue(),
+      'name' =>  $data['name_of_nominator'],
+      'email' =>  isset($data['email_of_person_who_is_nominating']) ? $data['email_of_person_who_is_nominating'] : NULL,
+      'template' => 'nominator_notified',
+      'webforms' =>  $term->get('field_followup_webform_s_to_nomi')->getvalue(),
+      'signature' =>  $term->get('field_include_signature_in_follo')->getvalue(),
+    ],
+    'field_approval_message_to_nomine'  => [
+      'message' =>  $term->get('field_approval_message_to_nomine')->getvalue(),
+      'email' =>  isset($data['email_of_person_being_nominated']) ? $data['email_of_person_being_nominated'] : NULL,
+      'name' =>  isset($data['name_of_nominee']) ? $data['name_of_nominee'] : NULL,
+      'template' => 'nominee_notified',
+      'webforms' =>  $term->get('field_followup_webform')->getvalue(),
+      'signature' =>  $term->get('field_include_signature_in_follo')->getvalue(),
+    ],
+    // Only for Vito Recine High School Scholarship
+    'field_follow_up_message_to_guida' => [
+      'message' =>  $term->get('field_follow_up_message_to_guida')->getvalue(),
+      'email' =>  (isset($data['email_of_guidance_counselor_confirm']) ? $data['email_of_guidance_counselor_confirm'] : NULL),
+      'name' =>  (isset($data['name_of_guidance_counselor']) ? $data['name_of_guidance_counselor'] : NULL),
+      'template' => 'guidance_counselor_notified',
+      'webforms' =>  $term->get('field_followup_webform_s_to_guid')->getvalue(),
+      'signature' =>  $term->get('field_include_signature_in_follo')->getvalue(),
+    ],
+    // Only for College Scholarship
+    'field_followup_message_to_physic' => [
+      'message' =>  $term->get('field_followup_message_to_physic')->getvalue(),
+      'email' =>  (isset($data['email_of_team_physician_confirm']) ? $data['email_of_team_physician_confirm'] : NULL),
+      'name' =>  (isset($data['name_of_team_physician']) ? $data['name_of_team_physician'] : NULL),
+      'template' => 'guidance_counselor_notified',
+      'webforms' =>  $term->get('field_followup_webforms_to_physi')->getvalue(),
+      'signature' =>  $term->get('field_include_signature_in_follo')->getvalue(),
+    ],
+    // Only for College Scholarship
+    'field_followup_message_to_progra' => [
+      'message' =>  $term->get('field_followup_message_to_progra')->getvalue(),
+      'email' =>  (isset($data['email_of_program_director_confirm']) ? $data['email_of_program_director_confirm'] : NULL),
+      'name' =>  (isset($data['name_of_program_director']) ? $data['name_of_program_director'] : NULL),
+      'template' => 'program_director_was_notified',
+      'webforms' =>  $term->get('field_followup_webforms_to_progr')->getvalue(),
+      'signature' =>  $term->get('field_include_signature_in_follo')->getvalue(),
+    ],
+    // Only for College Scholarship
+    'field_followup_message_to_superv' => [
+      'message' =>  $term->get('field_followup_message_to_superv')->getvalue(),
+      'email' =>  (isset($data['email_of_supervising_at_confirm']) ? $data['email_of_supervising_at_confirm'] : NULL),
+      'name' =>  (isset($data['name_of_supervising_at']) ? $data['name_of_supervising_at'] : NULL),
+      'template' => 'supervising_at_notified',
+      'webforms' =>  $term->get('field_followup_webform_s_to_supe')->getvalue(),
+      'signature' =>  $term->get('field_include_signature_in_follo')->getvalue(),
+    ],
+  ];
+
+  foreach ($fields_to_check as $i => $field) {
+
+    if ($field['message']) {
+      // Get the message
+      $message_array = current($field['message']);
+      // Fill out tokens
+      $message = replaceTokens($message_array['value'], $data);
+      // Add any webforms
+
+      $webforms = $field['webforms'];
+      foreach ($webforms as $i => $webform) {
+        $url_object = Url::fromRoute('entity.webform.canonical', array('webform' => $webform['target_id']));
+        $url_object->setAbsolute();
+        $url = $url_object->toString();
+        $query = '?';
+        foreach ($data as $i => $v) {
+          $query .= $i .'='. $v .'&';
+        }
+        $query .= 'nnid='. $node->id() .'&';
+        $message .='<p>Link to form: <a href="'. $url . $query .'">link</a> </p>';
+      }
+      // Check for signature
+      $include_sig_array = current($field['signature']);
+      $sig = current($include_sig_array);
+      if ($sig) {
+        $sig_markup = $config->get('signature');
+        $message .= check_markup($sig_markup['value'], $sig_markup['format']);
+      }
+
+      $email = FALSE;
+      if (isset($constrain)) {
+
+        $current = current($field['webforms']);
+        if ($current) {
+          $id = $current['target_id'];
+          if (in_array($id, $constrain)) {
+            $email = [
+              'message' => $message,
+              'to' => $field['email'],
+              'name' => $field['name'],
+              'template' => $field['template'],
+            ];
+          }
+        }
+      }
+      else {
+        // no check
+        $email = [
+          'message' => $message,
+          'to' => $field['email'],
+          'name' => $field['name'],
+          'template' => $field['template'],
+        ];
+      }
+
+      if ($email) {
+        $emails[] = $email;
+      }
+
+    }
+  }
+  return $emails;
+}
+
+/**
+ * Helper function to resend CTA emails
+ */
+function _atsnj_resend_cta_emails($term, $node, $constrain = NULL) {
+
+  $emails = _atsnj_determine_nomination_emails($term, $node, $constrain);
+  _atsnj_nominations_send_emails($emails, $node, TRUE);
+}
+
+/**
+ * Helper function to send emails
+ */
+function _atsnj_nominations_send_emails($emails, Drupal\Core\Entity\EntityInterface $entity, $save = FALSE){
+
+  $node = $entity;
+
+  // Load config
+  $config = \Drupal::config('atsnj_nominations.settings');
+
+  // Determine who gets the internal messages
+  $users_to_be_notified = _atsnj_get_users_nomination_message();
+
+  foreach ($emails as $email) {
+
+    // Send emails - if we are supposed to
+    $disable_emails = $config->get('disable_emails');
+    if (!$disable_emails) {
+      // Send email(s)
+      $mailManager = \Drupal::service('plugin.manager.mail');
+      $module = 'atsnj_nominations';
+      $key = 'send_nomination_mail';
+      $to = $email['to'];
+      $params['message'] = $email['message'];
+      $params['subject'] = 'ATSNJ Nomination Update';
+      $params['body'] = $email['message'];
+      $langcode = \Drupal::currentUser()->getPreferredLangcode();
+      $send = TRUE;
+      $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+      if ($result['result'] !== TRUE) {
+        \Drupal::messenger()->addMessage(t('There was a problem sending your message and it was not sent.'), 'error');
+      }
+      else {
+
+        \Drupal::messenger()->addMessage(t('Your message has been sent.'));
+
+        // Document emails sent in the nomination node
+        $timestamp = time();
+        $formatted_date = date("Y-m-d\TH:i:s", $timestamp);
+        $paragraph = Paragraph::create([
+          'type' => 'cta_email_s_',
+        ]);
+        $paragraph->set('field_email_contents', [   // paragraph's field machine name
+          'value' => $email['message'],
+          'format' => 'full_html',
+        ]);
+        $paragraph->set('field_email_date', [   // paragraph's field machine name
+          'value' => $formatted_date,
+        ]);
+        $paragraph->set('field_email_target', [   // paragraph's field machine name
+          'value' => $email['to'],
+        ]);
+        $paragraph->isNew();
+        $paragraph->save();
+        if ($paragraph->id()) {
+          $values = $node->get('field_cta_email_s_')->getValue();
+          $values[] = [
+            'target_id' => $paragraph->id(),
+            'target_revision_id' => $paragraph->getRevisionId(),
+          ];
+          $node->set('field_cta_email_s_', $values);
+        }
+        if ($save) {
+          // Only save if needed
+          // There is no need to save if this function is called from the entity_presave function
+          $node->save();
+        }
+      }
+    }
+
+    $messages_enabled = Drupal::moduleHandler()->moduleExists('message');
+    if ($messages_enabled) {
+      // Send activity message(s) for each $users_to_be_notified
+      foreach ($users_to_be_notified as $user) {
+        $message = Message::create(['template' => $email['template'], 'uid' => $user->id()]);
+        $message->set('field_nomination', $node);
+        $message->save();
+      }
+    }
+
+    // Alert user
+    \Drupal::messenger()->addMessage('Notification sent ('. $email['template'] .')');
+  }
+
+  return $node;
+}
+
+/**
+ * Helper function to replace tokens
+ */
+function replaceTokens( $string, $data) {
+
+  foreach ($data as $i => $v) {
+    $string = str_replace('['. $i .']', $v, $string );
+  }
+
+  return $string;
+}
+
+function _get_current_controller_entity() {
+  $currentRouteParameters = \Drupal::routeMatch()->getParameters();
+  foreach ($currentRouteParameters as $param) {
+    if ($param instanceof \Drupal\Core\Entity\EntityInterface) {
+      $entity = $param;
+      return $entity;
+    }
+  }
+  return NULL;
+}
+
+function _atsnj_assign_submission($webform_submission){
+  // Load the data in the webform submission
+  $data = $webform_submission->getData();
+  $webform = $webform_submission->getWebform();
+  $webform_id = $webform->id();
+
+  // Logs a notice
+  \Drupal::logger('atsnj_nominations')->notice(('@webform_id: was submitted. @code'),
+    array(
+      '@webform_id' => $webform_id,
+      '@code' => 'not rules',
+    ));
+
+  if (isset($data['nomination_node'])) {
+    $nomination_node_nid = $data['nomination_node'];
+
+    // Logs a notice
+    \Drupal::logger('atsnj_nominations')->notice(('@webform_id: was submitted with nomination node value of @nid. @code'),
+      array(
+        '@webform_id' => $webform_id,
+        '@nid' => $nomination_node_nid,
+        '@code' => 'not rules',
+      ));
+
+    $node = Node::load($nomination_node_nid);
+    if ($node) {
+      $sid = $webform_submission->id();
+
+
+      $submissions = $node->get('field_nomination_submission')->getValue();
+      $submissions[] = ['target_id' => $sid];
+
+      $node->set('field_nomination_submission', $submissions);
+      $node->save();
+    }
+    else {
+      // Logs an error
+      \Drupal::logger('atsnj_nominations')->error(('@webform_id: was submitted with nomination node value of @nid but the node was not able to be loaded. @code'),
+        array(
+          '@webform_id' => $webform_id,
+          '@nid' => $nomination_node_nid,
+          '@code' => 'not rules',
+        ));
+    }
+
+  }
+}
+/**
+ * Helper function update nominations
+ */
+function _atsnj_nominations_update_completion(Drupal\Core\Entity\EntityInterface $entity){
+
+  // Collect type config
+  $tid = $entity->get('field_nomination_type')->getString();
+  $term = Term::load($tid);
+
+  $status = _atsnj_nomination_status($term, $entity);
+
+  $webforms_submitted = $status['webforms_submitted'];
+  $webforms_needed = $status['webforms_needed'];
+  $webforms_not_submitted = $status['webforms_not_submitted'];
+
+  // Compare
+  $num_webforms_needed = count($webforms_needed);
+  if ($num_webforms_needed) {
+
+    if ((count($webforms_submitted) / $num_webforms_needed) === 1) {
+      // We are complete!
+      $entity->set('field_status', 'complete');
+      $entity->set('field_remaining_webforms', []);
+
+      // Determine who gets the internal messages
+      $users_to_be_notified = _atsnj_get_users_nomination_message();
+
+      foreach ($users_to_be_notified as $user) {
+        // Send message(s)
+        $message = Message::create(['template' => 'nomination_is_complete', 'uid' => $user->id()]);
+        $message->set('field_nomination', $entity);
+        //$message->set('field_user_to_be_notified', $users_to_be_notified);
+        $message->save();
+      }
+
+    }
+    else {
+      // We are not complete; update the Remaining webforms field
+      $values = [];
+      foreach($webforms_not_submitted as $target_id) {
+        $values[] = ['target_id' => $target_id];
+      }
+      $entity->set('field_remaining_webforms', $values);
+
+    }
+
+  }
+
+}

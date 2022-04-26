@@ -1,0 +1,11 @@
+atsnj_nominations.base:
+  route_name: atsnj_nominations.base
+  parent: atsnj.admin_atsnj
+  title: 'Nominations'
+  description: 'Administer ATSNJ Nominations'
+
+atsnj_nominations.settings:
+  route_name: atsnj_nominations.settings
+  parent: atsnj_nominations.base
+  title: 'Settings'
+  description: 'ATSNJ Nominations Settings Form'

@@ -1,0 +1,18 @@
+name: ATSNJ EBP
+description: Supports the Conference
+package: ATSNJ
+
+type: module
+core_version_requirement: ^8.8 || ^9
+
+dependencies:
+  - node
+  - block
+  - atsnj_bulk_actions
+
+test_dependencies:
+ - drupal:image
+
+php: 5.6
+
+hidden: false

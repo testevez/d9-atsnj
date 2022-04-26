@@ -1,0 +1,9 @@
+atsnj_admin.flag_all:
+  path: '/atsnj-admin/flag-all/{flag_id}/{user_id}'
+  defaults:
+    _controller: '\Drupal\atsnj_admin\Controller\AtsnjAdminController::flagByAccount'
+    _title: ''
+  requirements:
+    _custom_access: '\Drupal\atsnj_admin\Controller\AtsnjAdminController::access'
+
+

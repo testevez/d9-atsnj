@@ -1,0 +1,4 @@
+atsnj_admin.logout:
+  weight: 120
+  menu_name: main
+  class: Drupal\user\Plugin\Menu\LoginLogoutMenuLink

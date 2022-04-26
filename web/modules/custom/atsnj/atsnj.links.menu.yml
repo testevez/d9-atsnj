@@ -1,0 +1,28 @@
+atsnj.admin_atsnj:
+  route_name: atsnj.admin_atsnj
+  parent: system.admin
+  title: 'ATSNJ'
+  description: 'Administer ATSNJ Custom modules settings'
+  weight: 100
+
+atsnj.settings:
+  route_name: atsnj.settings
+  parent: atsnj.admin_atsnj
+  title: 'ATSNJ Settings'
+  description: 'Administer ATSNJ Admin module'
+  weight: -5
+
+atsnj.help:
+  route_name: atsnj.help
+  parent: atsnj.admin_atsnj
+  title: 'Help'
+  description: 'Guidance for ATSNJ admins on how to use the site'
+  weight: 0
+
+atsnj.acknowledge_settings:
+  route_name: atsnj.acknowledge_settings
+  parent: atsnj.admin_atsnj
+  title: 'Announcement / Acknowledge Settings'
+  description: 'Administer special announcement / acknowledge settings'
+  weight: 0
+

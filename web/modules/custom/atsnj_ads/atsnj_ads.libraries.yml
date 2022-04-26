@@ -1,0 +1,13 @@
+landscape_ads_block:
+  version: 1.x
+  css:
+    theme:
+      css/atsnj_ads.landscape_ads_block.css: {}
+  js:
+    js/atsnj_ads.landscape_ads_block.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal.ajax
+    - core/drupal
+    - core/drupalSettings
+    - core/jquery.once

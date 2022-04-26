@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function atsnj_ads_theme() {
+  return [
+    'landscape_ads_block' => [
+      'variables' => ['items' => NULL],
+    ],
+  ];
+}

@@ -1,0 +1,5 @@
+atsnj_comittee.committee_minute_add_page:
+  route_name: 'atsnj_committee.group.minutes_add'
+  title: 'Add Committee Minutes'
+  appears_on:
+    - 'atsnj_committee.group.minutes_admin'

@@ -1,0 +1,14 @@
+.openid-connect-login-form .form-submit {
+    display: none;
+}
+.openid-connect-login-form .form-submit.button-style {
+    display: block;
+}
+input.button-style:hover {
+    background-color: #555 !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+.region-content .openid-connect-login-form {
+    margin-top: 2em;
+}

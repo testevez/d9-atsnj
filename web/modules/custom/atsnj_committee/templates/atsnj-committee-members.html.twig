@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a link to a file.
+ *
+ * Available variables:
+ * - attributes: The HTML attributes for the containing element.
+ * - link: A link to the file.
+ * - description: $item->description
+ * - title: The value applied to the download link anchor tag
+ *
+ * @see template_preprocess_file_link()
+ *
+ * @ingroup themeable
+ */
+#}
+
+{% for result in results %}
+    <h3>{{ result.label }}(s)</h3>
+
+    <ul class="clearfix">
+        {% for user in result.users %}
+            <li>{{ user }}</li>
+        {% endfor %}
+    </ul>
+
+{% endfor %}

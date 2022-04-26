@@ -1,0 +1,34 @@
+atsnj_portal.settings:
+  path: '/admin/atsnj/atsnj-portal'
+  defaults:
+    _controller: '\Drupal\atsnj_portal\Controller\AtsnjPortalSettingsController::content'
+    _title: 'Portal Settings'
+  requirements:
+    _permission: 'administer atsnj_portal'
+
+atsnj_portal.portal:
+  path: '/portal'
+  defaults:
+    _controller: '\Drupal\atsnj_portal\Controller\AtsnjPortalController::content'
+    _title: 'Portal'
+  requirements:
+    _permission: 'access atsnj members content'
+
+atsnj_portal.cas:
+  path: '/admin/atsnj/users/cas-fix'
+  defaults:
+    _form: '\Drupal\atsnj_portal\Form\AtsnjCasFix'
+    _title: 'ATSNJ CAS Fix'
+  requirements:
+    _permission: 'administer atsnj_portal'
+
+atsnj_portal.dashboard:
+  path: '/user/{user}/dashboard'
+  defaults:
+    _controller: '\Drupal\atsnj_portal\Controller\AtsnjDashboard::content'
+    _title: 'Dashboard'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _custom_access: '\Drupal\atsnj_portal\Controller\AtsnjDashboard::access'
+
